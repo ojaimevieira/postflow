@@ -1,0 +1,158 @@
+{
+  "name": "⚡ PostFlow - Test Notion URL Access",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "triggerAtSecond": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-test",
+      "name": "Schedule Test (Every 30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "1dc68fa96b0480ff8440cf23e44f8e22",
+        "options": {}
+      },
+      "id": "query-notion-test",
+      "name": "Query Notion (Test)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple test to extract file URLs from Notion\nconst items = $input.all();\nconst testData = [];\n\nconsole.log(`🧪 TESTING - Processing ${items.length} items for URL access`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  const postTitle = data.properties?.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n  const mediaFiles = data.properties?.Mídia?.files || [];\n  \n  console.log(`\\n📝 Testing post: \"${postTitle}\"`);\n  console.log(`📸 Media files: ${mediaFiles.length}`);\n  \n  if (mediaFiles.length > 0) {\n    const mediaFile = mediaFiles[0];\n    console.log(`📁 Media file data:`, JSON.stringify(mediaFile, null, 2));\n    \n    let fileUrl = null;\n    let fileName = null;\n    let fileType = null;\n    \n    if (mediaFile.file) {\n      fileUrl = mediaFile.file.url;\n      fileName = mediaFile.name || 'notion_file';\n      fileType = 'notion';\n      console.log(`📤 Found Notion file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    } else if (mediaFile.external) {\n      fileUrl = mediaFile.external.url;\n      fileName = mediaFile.name || 'external_file';\n      fileType = 'external';\n      console.log(`🔗 Found external file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    }\n    \n    if (fileUrl) {\n      testData.push({\n        post_title: postTitle,\n        file_url: fileUrl,\n        file_name: fileName,\n        file_type: fileType,\n        page_id: data.id\n      });\n    }\n  }\n}\n\nconsole.log(`\\n🧪 Total files to test: ${testData.length}`);\nreturn testData.map(test => ({ json: test }));"
+      },
+      "id": "extract-test-urls",
+      "name": "Extract Test URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "HEAD",
+        "url": "={{ $json.file_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 10
+            }
+          }
+        }
+      },
+      "id": "test-url-access",
+      "name": "Test URL Access (HEAD)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze the HEAD request results\nconst items = $input.all();\n\nconsole.log(`\\n🔍 === URL ACCESS TEST RESULTS ===`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  console.log(`\\n📋 Test for: \"${data.post_title}\"`);\n  console.log(`📁 File: ${data.file_name} (${data.file_type})`);\n  console.log(`🔗 URL: ${data.file_url}`);\n  \n  // Check response status\n  if (data.statusCode) {\n    console.log(`📊 Status Code: ${data.statusCode}`);\n    \n    if (data.statusCode === 200) {\n      console.log(`✅ SUCCESS: URL is accessible!`);\n      \n      // Check headers for file info\n      if (data.headers) {\n        const contentType = data.headers['content-type'] || 'unknown';\n        const contentLength = data.headers['content-length'] || 'unknown';\n        console.log(`📄 Content-Type: ${contentType}`);\n        console.log(`📏 Content-Length: ${contentLength} bytes`);\n      }\n    } else if (data.statusCode === 403) {\n      console.log(`❌ FORBIDDEN: URL access denied (403)`);\n    } else if (data.statusCode === 404) {\n      console.log(`❌ NOT FOUND: URL not found (404)`);\n    } else {\n      console.log(`⚠️  WARNING: Unexpected status code`);\n    }\n  } else {\n    console.log(`❌ ERROR: No response received`);\n  }\n}\n\nconsole.log(`\\n🔍 === END OF URL TEST ===`);\nreturn items;"
+      },
+      "id": "analyze-results",
+      "name": "Analyze URL Test Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Test (Every 30s)": {
+      "main": [
+        [
+          {
+            "node": "Query Notion (Test)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion (Test)": {
+      "main": [
+        [
+          {
+            "node": "Extract Test URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Test URLs": {
+      "main": [
+        [
+          {
+            "node": "Test URL Access (HEAD)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test URL Access (HEAD)": {
+      "main": [
+        [
+          {
+            "node": "Analyze URL Test Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "url-test-1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "notion-url-test"
+  },
+  "id": "postflow-notion-url-test",
+  "tags": []
+}
