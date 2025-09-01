@@ -27,8 +27,10 @@
         "nodeCredentialType": "notionApi",
         "resource": "databasePage",
         "operation": "getAll",
-        "databaseId": "1dc68fa96b0480ff8440cf23e44f8e22",
-        "options": {}
+        "databaseId": "1cc68fa96b0480a5ad81f57648a2392c",
+        "options": {
+          "downloadFiles": true
+        }
       },
       "id": "query-notion-test",
       "name": "Query Notion (Test)",
