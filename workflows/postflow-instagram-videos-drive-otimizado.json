@@ -1,0 +1,391 @@
+{
+  "name": "🎬 PostFlow - Vídeos Google Drive Otimizado",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "348b7043-ab5a-457f-aa99-35a2b12e4fe5",
+      "name": "Schedule Trigger (Every 30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -736,
+        176
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/1c868fa9-6b04-811a-b439-da9ae42cf538/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "{\n  \"filter\": {\n    \"and\": [\n      {\n        \"property\": \"Status\",\n        \"select\": {\n          \"equals\": \"Agendado\"\n        }\n      },\n      {\n        \"property\": \"Publicar?\",\n        \"checkbox\": {\n          \"equals\": true\n        }\n      },\n      {\n        \"property\": \"Plataforma\",\n        \"multi_select\": {\n          \"contains\": \"Instagram\"\n        }\n      }\n    ]\n  },\n  \"page_size\": 10\n}",
+        "options": {}
+      },
+      "id": "1b5f0e90-b20a-4423-aa99-3c089d835081",
+      "name": "Query Notion Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -528,
+        176
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JE15MmhvIQKtOxT3",
+          "name": "Header Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "4823Bw3Thr44sjtn",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow OTIMIZADO - Google Drive URLs com múltiplas estratégias\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🎬 DRIVE OTIMIZADO - Processing ${items.length} items`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\n// Helper function to detect media type\nfunction getMediaType(mediaUrl) {\n  const url = mediaUrl.toLowerCase();\n  const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];\n  \n  for (const ext of videoExtensions) {\n    if (url.includes(ext)) return 'VIDEO';\n  }\n  \n  return 'IMAGE';\n}\n\n// NOVA FUNÇÃO: Múltiplas estratégias para URLs do Google Drive\nfunction prepareGoogleDriveUrl(originalUrl) {\n  const url = originalUrl.toLowerCase();\n  \n  if (!url.includes('drive.google.com')) {\n    return {\n      directUrl: originalUrl,\n      downloadUrl: originalUrl,\n      strategy: 'DIRECT',\n      needsDownload: false\n    };\n  }\n  \n  // Extrair file ID do Google Drive\n  const driveMatch = originalUrl.match(/\\/file\\/d\\/([a-zA-Z0-9_-]+)/);\n  if (!driveMatch) {\n    console.log('⚠️ Could not extract Google Drive file ID');\n    return {\n      directUrl: originalUrl,\n      downloadUrl: originalUrl,\n      strategy: 'FALLBACK',\n      needsDownload: true\n    };\n  }\n  \n  const fileId = driveMatch[1];\n  console.log(`🔑 Google Drive File ID: ${fileId}`);\n  \n  // ESTRATÉGIA 1: URL de visualização direta (como mostrado no vídeo)\n  const directViewUrl = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;\n  \n  // ESTRATÉGIA 2: URL de download direto\n  const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;\n  \n  // ESTRATÉGIA 3: URL de thumbnail/preview (às vezes funciona para vídeos menores)\n  const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1920-h1080`;\n  \n  console.log(`🔗 Direct View URL: ${directViewUrl}`);\n  console.log(`📥 Download URL: ${downloadUrl}`);\n  \n  return {\n    directUrl: directViewUrl,\n    downloadUrl: downloadUrl,\n    thumbnailUrl: thumbnailUrl,\n    fileId: fileId,\n    strategy: 'GOOGLE_DRIVE_MULTI',\n    needsDownload: true // Sempre ter fallback pronto\n  };\n}\n\nfor (const item of items) {\n  const responseData = item.json;\n  const notionPages = responseData.results || [];\n  \n  console.log(`📄 Found ${notionPages.length} pages in Notion response`);\n  \n  if (notionPages.length === 0) {\n    console.log('📭 No scheduled posts found. Workflow will finish gracefully.');\n    return [];\n  }\n  \n  for (const data of notionPages) {\n    console.log('\\n=== 🎬 Processing page (DRIVE OTIMIZADO) ===');\n    \n    const postTitle = data.properties.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n    console.log(`📝 Post: \"${postTitle}\"`);\n    console.log(`🆔 Page ID: ${data.id}`);\n    \n    // Check all conditions (mantém a lógica que funciona)\n    const status = data.properties.Status?.select?.name;\n    console.log(`📊 Status: ${status}`);\n    if (status !== 'Agendado') {\n      console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n      continue;\n    }\n    \n    const shouldPublish = data.properties['Publicar?']?.checkbox;\n    console.log(`✅ Publicar?: ${shouldPublish}`);\n    if (!shouldPublish) {\n      console.log('❌ SKIP: Publicar? is false');\n      continue;\n    }\n    \n    const platforms = data.properties.Plataforma?.multi_select || [];\n    const platformNames = platforms.map(p => p.name);\n    console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n    const hasInstagram = platforms.some(p => p.name === 'Instagram');\n    \n    if (!hasInstagram) {\n      console.log('❌ SKIP: No Instagram platform');\n      continue;\n    }\n    \n    // Check scheduled date/time (mantém a lógica que funciona)\n    const scheduledDateData = data.properties['Data do Agendamento']?.date;\n    console.log(`📅 Scheduled date data:`, scheduledDateData);\n    \n    if (!scheduledDateData) {\n      console.log('❌ SKIP: No scheduled date set');\n      continue;\n    }\n    \n    const scheduledStart = scheduledDateData.start;\n    let scheduledDate;\n    \n    if (scheduledStart.includes('T')) {\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n    \n    console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n    console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n    \n    const isTimeToPublish = now >= scheduledDate;\n    console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n    \n    if (!isTimeToPublish) {\n      const timeUntil = scheduledDate - now;\n      const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n      console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n      continue;\n    }\n    \n    // Extract post data (mantém a lógica que funciona)\n    const postText = data.properties['Texto do Post']?.rich_text?.[0]?.text?.content || '';\n    const hashtags = data.properties.Hashtags?.multi_select?.map(tag => tag.name.startsWith('#') ? tag.name : `#${tag.name}`).join(' ') || '';\n    const media = data.properties.Mídia?.files?.[0];\n    \n    console.log(`📸 Media available: ${!!media}`);\n    \n    if (!media) {\n      console.log(`❌ SKIP: Post \"${postTitle}\" has no media`);\n      continue;\n    }\n    \n    const originalUrl = media.external?.url || media.file?.url;\n    console.log(`🔗 Original Media URL: ${originalUrl}`);\n    \n    // NOVA LÓGICA: Preparar múltiplas URLs\n    const urlInfo = prepareGoogleDriveUrl(originalUrl);\n    const mediaType = getMediaType(originalUrl);\n    console.log(`🎬 Media Type: ${mediaType}`);\n    console.log(`🔗 Strategy: ${urlInfo.strategy}`);\n    \n    const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n    \n    console.log(`🎬 POST APPROVED: \"${postTitle}\" ready for optimized Instagram ${mediaType} posting!`);\n    \n    readyPosts.push({\n      notion_page_id: data.id,\n      post_title: postTitle,\n      caption: caption,\n      original_url: originalUrl,\n      direct_url: urlInfo.directUrl,\n      download_url: urlInfo.downloadUrl,\n      thumbnail_url: urlInfo.thumbnailUrl || '',\n      file_id: urlInfo.fileId || '',\n      media_type: mediaType,\n      url_strategy: urlInfo.strategy,\n      needs_download: urlInfo.needsDownload,\n      scheduled_date: scheduledDate.toISOString(),\n      _preserve_notion_id: data.id,\n      _preserve_title: postTitle\n    });\n  }\n}\n\nconsole.log(`\\n🎬 === DRIVE OTIMIZADO RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW (OTIMIZADO):');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${post.url_strategy}) (scheduled: ${new Date(post.scheduled_date).toLocaleString('pt-BR')})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\nreturn readyPosts.map(post => ({ json: post }));"
+      },
+      "id": "75cc88f6-78a5-44c6-8608-aa0117827bee",
+      "name": "Process Posts (Drive Otimizado)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "video_url",
+              "value": "={{ $json.direct_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "media_type",
+              "value": "VIDEO"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "try-direct-url",
+      "name": "Try Direct URL First",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -80,
+        76
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.download_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Referer",
+              "value": "https://drive.google.com/"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 180000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 10
+            }
+          }
+        }
+      },
+      "id": "download-video-fallback",
+      "name": "Download Video (Fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -80,
+        276
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "media_type",
+              "value": "VIDEO"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "upload-video-fallback",
+      "name": "Upload Video (Fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        144,
+        276
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "publish-post",
+      "name": "Publish Instagram Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        368,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recuperar notion_page_id dos dados originais\nconst currentData = $json;\nconst originalData = $('Process Posts (Drive Otimizado)').item.json;\n\nconsole.log('🔄 Recuperando notion_page_id...');\nconsole.log('URL Strategy used:', originalData.url_strategy);\n\nconst finalData = {\n  ...currentData,\n  notion_page_id: originalData.notion_page_id,\n  post_title: originalData.post_title,\n  media_type: originalData.media_type,\n  url_strategy: originalData.url_strategy,\n  instagram_published: true,\n  automated_publish: true,\n  published_at: new Date().toISOString()\n};\n\nconsole.log('✅ Dados finais para Notion:', JSON.stringify(finalData, null, 2));\n\nreturn { json: finalData };"
+      },
+      "id": "preserve-notion-id",
+      "name": "Preserve Notion ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notion_page_id }}",
+          "mode": "id",
+          "__regex": "^([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Publicado"
+            },
+            {
+              "key": "Publicar?|checkbox"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-notion",
+      "name": "Update Notion Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        816,
+        176
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AtDeqGpF6le4FZQI",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Query Notion Posts": {
+      "main": [
+        [
+          {
+            "node": "Process Posts (Drive Otimizado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Posts (Drive Otimizado)": {
+      "main": [
+        [
+          {
+            "node": "Try Direct URL First",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Video (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Try Direct URL First": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video (Fallback)": {
+      "main": [
+        [
+          {
+            "node": "Upload Video (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video (Fallback)": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Preserve Notion ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Notion ID": {
+      "main": [
+        [
+          {
+            "node": "Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger (Every 30s)": {
+      "main": [
+        [
+          {
+            "node": "Query Notion Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "drive-otimizado-1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "drive-otimizado"
+  },
+  "id": "postflow-drive-otimizado",
+  "tags": []
+}
