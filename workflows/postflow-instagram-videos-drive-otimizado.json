@@ -97,7 +97,7 @@
             },
             {
               "name": "media_type",
-              "value": "VIDEO"
+              "value": "REELS"
             },
             {
               "name": "access_token",
@@ -176,7 +176,7 @@
             },
             {
               "name": "media_type",
-              "value": "VIDEO"
+              "value": "REELS"
             },
             {
               "name": "access_token",
