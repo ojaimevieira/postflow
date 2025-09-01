@@ -87,6 +87,19 @@
     },
     {
       "parameters": {
+        "jsCode": "// Debug: Log the data being passed to the download phase\nconst items = $input.all();\n\nconsole.log('\\n=== 🔍 DEBUG: Before Download Phase ===');\nconsole.log(`Items received: ${items.length}`);\n\nfor (const item of items) {\n  const data = item.json;\n  console.log(`\\n📋 Processing item for download:`);\n  console.log(`  📝 Title: ${data.post_title}`);\n  console.log(`  🔗 File URL: ${data.file_url}`);\n  console.log(`  📁 File Name: ${data.file_name}`);\n  console.log(`  🎭 Media Type: ${data.media_type}`);\n  console.log(`  📤 Is Notion File: ${data.is_notion_file}`);\n  \n  // Check if URL is valid\n  if (!data.file_url) {\n    console.log('  ❌ ERROR: No file URL found!');\n  } else if (data.file_url.length < 10) {\n    console.log('  ⚠️  WARNING: File URL seems too short!');\n  } else {\n    console.log('  ✅ File URL looks valid');\n  }\n}\n\nconsole.log('=== 🔍 DEBUG: End of Debug ===\\n');\n\nreturn items;"
+      },
+      "id": "debug-before-download",
+      "name": "Debug Before Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        200
+      ]
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -126,7 +139,15 @@
           "parameters": [
             {
               "name": "User-Agent",
-              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
             }
           ]
         },
@@ -136,11 +157,11 @@
               "responseFormat": "file"
             }
           },
-          "timeout": 180000,
+          "timeout": 300000,
           "redirect": {
             "redirect": {
               "followRedirects": true,
-              "maxRedirects": 10
+              "maxRedirects": 20
             }
           }
         }
@@ -192,6 +213,19 @@
       "typeVersion": 4.1,
       "position": [
         0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Debug: Log the data after download\nconst items = $input.all();\n\nconsole.log('\\n=== 🔍 DEBUG: After Download Phase ===');\nconsole.log(`Items received after download: ${items.length}`);\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  console.log(`\\n📋 Item ${i + 1}:`);\n  \n  // Check if we have binary data\n  if (item.binary) {\n    console.log(`  📦 Binary data keys: ${Object.keys(item.binary)}`);\n    for (const key of Object.keys(item.binary)) {\n      const binaryData = item.binary[key];\n      console.log(`    📁 Binary '${key}': ${binaryData.mimeType}, ${binaryData.fileSize} bytes`);\n    }\n  } else {\n    console.log(`  ❌ No binary data found!`);\n  }\n  \n  // Check JSON data\n  if (item.json) {\n    console.log(`  📋 JSON keys: ${Object.keys(item.json)}`);\n    console.log(`  📝 Title: ${item.json.post_title}`);\n    console.log(`  🎭 Media Type: ${item.json.media_type}`);\n  } else {\n    console.log(`  ❌ No JSON data found!`);\n  }\n}\n\nconsole.log('=== 🔍 DEBUG: End After Download ===\\n');\n\nreturn items;"
+      },
+      "id": "debug-after-download",
+      "name": "Debug After Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
         300
       ]
     },
@@ -398,6 +432,17 @@
       "main": [
         [
           {
+            "node": "Debug Before Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Before Download": {
+      "main": [
+        [
+          {
             "node": "Is Notion File?",
             "type": "main",
             "index": 0
@@ -427,7 +472,7 @@
       "main": [
         [
           {
-            "node": "Is Video?",
+            "node": "Debug After Download",
             "type": "main",
             "index": 0
           }
@@ -435,6 +480,17 @@
       ]
     },
     "Download External File": {
+      "main": [
+        [
+          {
+            "node": "Debug After Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug After Download": {
       "main": [
         [
           {
