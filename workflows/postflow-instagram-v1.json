@@ -107,7 +107,7 @@
             },
             {
               "name": "access_token",
-              "value": "EAAgHDLKanTYBPcn4aS7cDROGJ2EzYC3jOAiVBQ8OCyQhVAN3u8Xex7jO7V0iGsZAgqASyhO1eWkiaZB8pNIIhKRIcznMQpsFyvDwRtKpPB9Xc714E1oKPTTki8HrzNZCwKeWqgxs7TSXobLK48SrqTZCuhv7xUp1A4bsNJZBcHZBP00baC4ZAKowUk29AxYUZCa9fK26moKs6IhsyQ0ztC9C8bL9kRZCzzqOzE9BPZAebzHkZAN9iDoBja1qXHDyMpw"
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
             }
           ]
         },
@@ -135,7 +135,7 @@
             },
             {
               "name": "access_token",
-              "value": "EAAgHDLKanTYBPTaDfOl7L3NGnTGGZAbl4mjazDcDOqUWJS3zEIU59UZBnZAQOFdziVdG5hUykr8B6HQBiNWAZBz5fZA3Tr7BUNv3fJW47ynHyl2ZCpu48EPlTItbZCDH4zwskFOvhHYCVLhyQZBYGrw8Sjq5VgHwhc2tNEI85k48N4lCrVEwpJpkZApOGUJqi621WMZCLpcSZAYsZB3sZCTZBF6CXAvAZBqykKQDi5cC8SrQupqOyxlldV1ZCKC0PoMWpwZDZD"
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
             }
           ]
         },

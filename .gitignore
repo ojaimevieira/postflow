@@ -6,3 +6,12 @@ Thumbs.db
 *.tmp
 .vscode/
 .idea/
+
+# N8n workflows with sensitive tokens
+workflows/*-production*.json
+workflows/*-with-tokens*.json
+
+# API Keys and credentials backup files
+**/tokens.txt
+**/keys.txt
+**/credentials.json
