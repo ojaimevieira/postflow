@@ -91,10 +91,11 @@ NOTION_DATABASE_ID=1c868fa96b04811ab439da9ae42cf538
 ## 📁 Arquivos Disponíveis
 
 ### Workflows N8n:
-- **`postflow-instagram-v1.json`** - Versão inicial completa
-- **`postflow-instagram-beta.json`** - Versão BETA otimizada (apenas fotos)
-- **`postflow-instagram-beta-videos.json`** - Versão BETA com vídeos (URLs diretas)
-- **`postflow-instagram-beta-videos-upload.json`** - Versão BETA com vídeos (upload de arquivos)
+- **`postflow-instagram-beta.json`** - ✅ Versão BETA para fotos e posts simples
+- **`postflow-instagram-beta-videos.json`** - ⚠️ Vídeos (pode sobrecarregar servidor)
+- **`postflow-instagram-beta-videos-upload.json`** - ⚠️ Upload híbrido (pode sobrecarregar servidor)
+- **`postflow-instagram-smart-videos.json`** - ❌ Tentativa leve (Instagram rejeita Google Drive URLs)
+- **`postflow-instagram-stable-videos.json`** - ⭐ **RECOMENDADO** para vídeos
 
 ### Documentação:
 - **`docs/configuracao.md`** - Guia de configuração completo
@@ -103,25 +104,33 @@ NOTION_DATABASE_ID=1c868fa96b04811ab439da9ae42cf538
 
 ## 🎬 Suporte a Vídeos
 
-## 🎬 Suporte a Vídeos
-
-### ⚠️ Problema Google Drive URLs
-Se você receber este erro:
+### ⚠️ Problema Instagram + Google Drive
+**Erro comum:**
 ```
 "Não foi possível obter a mídia deste URI: https://drive.google.com/uc?export=download&id=..."
 ```
 
-**Solução:** Use o arquivo `postflow-instagram-beta-videos-upload.json` que baixa e faz upload dos arquivos automaticamente.
+**Causa:** Instagram API não consegue acessar diretamente URLs do Google Drive.
 
-### Duas Versões Disponíveis:
-- **`videos.json`** - URLs diretas (mais rápido)
-- **`videos-upload.json`** - Download + Upload (mais compatível)
+**Solução:** Use o workflow `postflow-instagram-stable-videos.json` (RECOMENDADO)
+
+### 🛡️ Workflow Estável (Recomendado)
+- **Arquivo:** `postflow-instagram-stable-videos.json`
+- **Frequência:** A cada 2 minutos (ao invés de 30 segundos)
+- **Limite:** 1 post por execução para evitar sobrecarga
+- **Timeouts:** Estendidos (120s download, 180s upload)
+- **Método:** Sempre baixa e faz upload do arquivo
 
 ### Detecção Automática de Mídia
 - **Fotos:** `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`
 - **Vídeos:** `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm`, `.m4v`
 
-O workflow detecta automaticamente o tipo de mídia e usa o endpoint correto do Instagram (`image_url` vs `video_url`).
+### ⚠️ Proteção do Servidor
+Para evitar "conexão do n8n caindo na etapa de download", o workflow estável:
+- Processa apenas 1 post por vez
+- Executa a cada 2 minutos
+- Timeouts estendidos
+- Logs detalhados para monitoramento
 
 ## 🔐 Segurança
 
