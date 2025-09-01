@@ -1,5 +1,5 @@
 {
-  "name": "Teste agendamento",
+  "name": "⭐ Agendamento e Post de Fotos",
   "nodes": [
     {
       "parameters": {
@@ -17,21 +17,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [
-        -752,
-        48
+        -736,
+        176
       ],
       "alwaysOutputData": false
-    },
-    {
-      "parameters": {},
-      "id": "d8d3ecad-a32e-464e-9d59-392e2005afd1",
-      "name": "Manual Trigger (Backup)",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -704,
-        288
-      ]
     },
     {
       "parameters": {
@@ -107,7 +96,7 @@
             },
             {
               "name": "access_token",
-              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+              "value": "EAAgHDLKanTYBPcn4aS7cDROGJ2EzYC3jOAiVBQ8OCyQhVAN3u8Xex7jO7V0iGsZAgqASyhO1eWkiaZB8pNIIhKRIcznMQpsFyvDwRtKpPB9Xc714E1oKPTTki8HrzNZCwKeWqgxs7TSXobLK48SrqTZCuhv7xUp1A4bsNJZBcHZBP00baC4ZAKowUk29AxYUZCa9fK26moKs6IhsyQ0ztC9C8bL9kRZCzzqOzE9BPZAebzHkZAN9iDoBja1qXHDyMpw"
             }
           ]
         },
@@ -135,7 +124,7 @@
             },
             {
               "name": "access_token",
-              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+              "value": "EAAgHDLKanTYBPTaDfOl7L3NGnTGGZAbl4mjazDcDOqUWJS3zEIU59UZBnZAQOFdziVdG5hUykr8B6HQBiNWAZBz5fZA3Tr7BUNv3fJW47ynHyl2ZCpu48EPlTItbZCDH4zwskFOvhHYCVLhyQZBYGrw8Sjq5VgHwhc2tNEI85k48N4lCrVEwpJpkZApOGUJqi621WMZCLpcSZAYsZB3sZCTZBF6CXAvAZBqykKQDi5cC8SrQupqOyxlldV1ZCKC0PoMWpwZDZD"
             }
           ]
         },
@@ -204,17 +193,6 @@
   ],
   "pinData": {},
   "connections": {
-    "Manual Trigger (Backup)": {
-      "main": [
-        [
-          {
-            "node": "Query Notion Posts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Query Notion Posts": {
       "main": [
         [
@@ -282,11 +260,11 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "cc4acea8-2923-43e6-b2bb-fe520b9d6ab5",
+  "versionId": "2e29cd8f-d57d-4cbf-924b-29e1e23ce466",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "bd879ef2240eb347546312a99952d46fe3a5a7d97275840626ec2c0edb734025"
