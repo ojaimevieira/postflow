@@ -2,12 +2,49 @@
 
 ## Overview
 
-O arquivo `postflow-instagram-beta-videos.json` é uma versão aprimorada do workflow BETA que inclui:
+Existem **duas versões** do workflow para vídeos:
 
-- ✅ **Detecção automática** de tipo de mídia (foto vs vídeo)
-- ✅ **Conversão automática** de URLs do Google Drive
-- ✅ **Endpoints dinâmicos** do Instagram (`image_url` vs `video_url`)
-- ✅ **Logs detalhados** para debugging
+### 1. `postflow-instagram-beta-videos.json` ⚡ (Versão URL)
+- ✅ **Mais rápida** - Usa URLs diretamente
+- ⚠️ **Limitações** - Google Drive URLs podem não funcionar
+- 🎯 **Melhor para** - URLs diretas de mídia
+
+### 2. `postflow-instagram-beta-videos-upload.json` 🔄 (Versão Upload)
+- ✅ **Mais compatível** - Baixa e faz upload dos arquivos
+- ✅ **Funciona com Google Drive** - Download automático
+- 🎯 **Melhor para** - URLs de cloud storage
+
+## ⚠️ Erro Comum: Google Drive URLs
+
+### Problema
+```json
+{
+  "error": "Only photo or video can be accepted as media type.",
+  "message": "Não foi possível obter a mídia deste URI: https://drive.google.com/uc?export=download&id=..."
+}
+```
+
+### Causa
+O Instagram não consegue acessar diretamente URLs do Google Drive, mesmo no formato de download direto.
+
+### ✅ Solução: Use a Versão Upload
+O arquivo `postflow-instagram-beta-videos-upload.json` resolve este problema:
+
+1. **Detecta** se a URL é do Google Drive
+2. **Baixa** o arquivo automaticamente 
+3. **Faz upload** direto para o Instagram
+
+## 🔧 Como Escolher a Versão
+
+### Use `postflow-instagram-beta-videos.json` se:
+- ✅ Suas mídias estão em URLs **diretas** (não cloud storage)
+- ✅ URLs são **acessíveis publicamente** pelo Instagram
+- ✅ Quer **máxima velocidade** de processamento
+
+### Use `postflow-instagram-beta-videos-upload.json` se:
+- ✅ Usa **Google Drive**, Dropbox, OneDrive
+- ✅ Usa URLs **temporárias** do Notion
+- ✅ Quer **máxima compatibilidade**
 
 ## 🔍 Detecção de Mídia
 

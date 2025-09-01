@@ -93,7 +93,8 @@ NOTION_DATABASE_ID=1c868fa96b04811ab439da9ae42cf538
 ### Workflows N8n:
 - **`postflow-instagram-v1.json`** - Versão inicial completa
 - **`postflow-instagram-beta.json`** - Versão BETA otimizada (apenas fotos)
-- **`postflow-instagram-beta-videos.json`** - Versão BETA com suporte a fotos + vídeos
+- **`postflow-instagram-beta-videos.json`** - Versão BETA com vídeos (URLs diretas)
+- **`postflow-instagram-beta-videos-upload.json`** - Versão BETA com vídeos (upload de arquivos)
 
 ### Documentação:
 - **`docs/configuracao.md`** - Guia de configuração completo
@@ -102,18 +103,19 @@ NOTION_DATABASE_ID=1c868fa96b04811ab439da9ae42cf538
 
 ## 🎬 Suporte a Vídeos
 
-### Google Drive Integration
-O workflow `postflow-instagram-beta-videos.json` inclui conversão automática de URLs do Google Drive:
+## 🎬 Suporte a Vídeos
 
-**URL Original (Google Drive):**
+### ⚠️ Problema Google Drive URLs
+Se você receber este erro:
 ```
-https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74mZa/view
+"Não foi possível obter a mídia deste URI: https://drive.google.com/uc?export=download&id=..."
 ```
 
-**URL Convertida (para Instagram):**
-```
-https://drive.google.com/uc?export=download&id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74mZa
-```
+**Solução:** Use o arquivo `postflow-instagram-beta-videos-upload.json` que baixa e faz upload dos arquivos automaticamente.
+
+### Duas Versões Disponíveis:
+- **`videos.json`** - URLs diretas (mais rápido)
+- **`videos-upload.json`** - Download + Upload (mais compatível)
 
 ### Detecção Automática de Mídia
 - **Fotos:** `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`
