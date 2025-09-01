@@ -1,0 +1,79 @@
+{
+  "name": "TEST - Update Status Only",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-test",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TEST - Simular dados após Instagram post\n// Page ID do post \"Post de teste Hamburguer\" que foi publicado\nconst testPageId = '1c868fa96b04806a9e06c15dd2fe8171'; // ID real do post publicado\n\nconsole.log('🧪 TESTE: Simulando update após Instagram post');\nconsole.log('Page ID:', testPageId);\nconsole.log('📋 Post: \"Post de teste Hamburguer\"');\n\nreturn [{\n  json: {\n    notion_page_id: testPageId,\n    post_title: 'Post de teste Hamburguer',\n    instagram_success: true\n  }\n}];"
+      },
+      "id": "simulate-instagram-success",
+      "name": "Simulate Instagram Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{ $json.notion_page_id }}",
+        "simple": true,
+        "properties": {
+          "Status": "Publicado",
+          "Publicar?": false
+        }
+      },
+      "id": "test-update-status",
+      "name": "TEST Update Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_credentials",
+          "name": "Notion API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Simulate Instagram Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulate Instagram Success": {
+      "main": [
+        [
+          {
+            "node": "TEST Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "test-update-1.0.0",
+  "id": "test-update-status",
+  "meta": {
+    "instanceId": "test-update-status"
+  }
+}

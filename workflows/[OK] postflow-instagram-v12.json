@@ -1,0 +1,263 @@
+{  "name": "PostFlow Instagram - v12 SCHEDULED",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */1 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-main",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger-main",
+      "name": "Manual Trigger (Backup)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },: "PostFlow Instagram - v11 FINAL",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-main",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/1c868fa9-6b04-811a-b439-da9ae42cf538/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type", 
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "{\n  \"filter\": {\n    \"and\": [\n      {\n        \"property\": \"Status\",\n        \"select\": {\n          \"equals\": \"Agendado\"\n        }\n      },\n      {\n        \"property\": \"Publicar?\",\n        \"checkbox\": {\n          \"equals\": true\n        }\n      },\n      {\n        \"property\": \"Plataforma\",\n        \"multi_select\": {\n          \"contains\": \"Instagram\"\n        }\n      }\n    ]\n  },\n  \"page_size\": 5\n}",
+        "options": {}
+      },
+      "id": "notion-query-main",
+      "name": "Query Notion Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "notion_http_auth",
+          "name": "Notion HTTP Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow v12 - Process Instagram posts with DATE SCHEDULING\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🚀 Processing ${items.length} items from HTTP Request`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\nfor (const item of items) {\n  const responseData = item.json;\n  \n  // Get results from Notion API response\n  const notionPages = responseData.results || [];\n  console.log(`📄 Found ${notionPages.length} pages in Notion response`);\n  \n  for (const data of notionPages) {\n    console.log('\\n=== 📋 Processing page ===');\n    \n    // Extract post title first for better logging\n    const postTitle = data.properties.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n    console.log(`📝 Post: \"${postTitle}\"`);\n    console.log(`🆔 Page ID: ${data.id}`);\n    \n    // Triple check all conditions\n    const status = data.properties.Status?.select?.name;\n    console.log(`📊 Status: ${status}`);\n    if (status !== 'Agendado') {\n      console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n      continue;\n    }\n    \n    const shouldPublish = data.properties['Publicar?']?.checkbox;\n    console.log(`✅ Publicar?: ${shouldPublish}`);\n    if (!shouldPublish) {\n      console.log('❌ SKIP: Publicar? is false');\n      continue;\n    }\n    \n    const platforms = data.properties.Plataforma?.multi_select || [];\n    const platformNames = platforms.map(p => p.name);\n    console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n    const hasInstagram = platforms.some(p => p.name === 'Instagram');\n    \n    if (!hasInstagram) {\n      console.log('❌ SKIP: No Instagram platform');\n      continue;\n    }\n    \n    // NEW: Check scheduled date/time\n    const scheduledDateData = data.properties['Data do Agendamento']?.date;\n    console.log(`📅 Scheduled date data:`, scheduledDateData);\n    \n    if (!scheduledDateData) {\n      console.log('❌ SKIP: No scheduled date set');\n      continue;\n    }\n    \n    // Parse scheduled date (can be date-only or datetime)\n    const scheduledStart = scheduledDateData.start;\n    let scheduledDate;\n    \n    if (scheduledStart.includes('T')) {\n      // Has time component\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      // Date only - assume 9:00 AM local time\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n    \n    console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n    console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n    \n    // Check if it's time to publish\n    const isTimeToPublish = now >= scheduledDate;\n    console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n    \n    if (!isTimeToPublish) {\n      const timeUntil = scheduledDate - now;\n      const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60 * 24) * 24) / 24;\n      console.log(`⏳ SKIP: Still ${hoursUntil.toFixed(1)} hours until scheduled time`);\n      continue;\n    }\n    \n    // Extract post data\n    const postText = data.properties['Texto do Post']?.rich_text?.[0]?.text?.content || '';\n    const hashtags = data.properties.Hashtags?.multi_select?.map(tag => tag.name.startsWith('#') ? tag.name : `#${tag.name}`).join(' ') || '';\n    const media = data.properties.Mídia?.files?.[0];\n    \n    console.log(`📸 Media available: ${!!media}`);\n    \n    if (!media) {\n      console.log(`❌ SKIP: Post \"${postTitle}\" has no media`);\n      continue;\n    }\n    \n    const mediaUrl = media.external?.url || media.file?.url;\n    console.log(`🔗 Media URL: ${mediaUrl}`);\n    \n    // Build caption\n    const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n    \n    console.log(`✅ POST APPROVED: \"${postTitle}\" ready for Instagram!`);\n    console.log(`🕒 Publishing at scheduled time: ${scheduledDate.toLocaleString('pt-BR')}`);\n    \n    readyPosts.push({\n      notion_page_id: data.id,\n      post_title: postTitle,\n      caption: caption,\n      media_url: mediaUrl,\n      scheduled_date: scheduledDate.toISOString(),\n      // Dados extras para preservar através do fluxo\n      _preserve_notion_id: data.id,\n      _preserve_title: postTitle\n    });\n  }\n}\n\nconsole.log(`\\n🎯 === FINAL RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('📋 Posts that will be published NOW:');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" (scheduled: ${new Date(post.scheduled_date).toLocaleString('pt-BR')})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time.');\n}\n\nreturn readyPosts.map(post => ({ json: post }));"
+      },
+      "id": "process-posts-main",
+      "name": "Process Instagram Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPXTok37bZBhPSNEoqglLvEuGlZAekTlQXvzZCgZBAiPi5oUKO1xBKpBCu8KaJszJL40viKjDKhQwd5i8HeRzED7MLdpFztxw2kczZBZCnuTzZBNNZCWdjqqY1bDZBrhmEVhNyWSpS7wMqHU6JGAEZB7hgjPl6XYQkGIdiZAZBnZCSDPIzonu8GQ1kZAAgT7hz8QYLvSndKPNn14ZC49PPDVKwQSi1yg3v357YE7WWHdUXww5acLPGWYc2QZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-media-main",
+      "name": "Create Instagram Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST", 
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPXTok37bZBhPSNEoqglLvEuGlZAekTlQXvzZCgZBAiPi5oUKO1xBKpBCu8KaJszJL40viKjDKhQwd5i8HeRzED7MLdpFztxw2kczZBZCnuTzZBNNZCWdjqqY1bDZBrhmEVhNyWSpS7wMqHU6JGAEZB7hgjPl6XYQkGIdiZAZBnZCSDPIzonu8GQ1kZAAgT7hz8QYLvSndKPNn14ZC49PPDVKwQSi1yg3v357YE7WWHdUXww5acLPGWYc2QZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish-main",
+      "name": "Publish Instagram Post",
+      "type": "n8n-nodes-base.httpRequest", 
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recuperar notion_page_id dos dados originais\nconst currentData = $json;\nconst originalData = $('Process Instagram Posts').item.json;\n\nconsole.log('🔄 Recuperando notion_page_id...');\nconsole.log('Dados atuais (Instagram):', JSON.stringify(currentData, null, 2));\nconsole.log('Dados originais (Notion):', JSON.stringify(originalData, null, 2));\n\n// Preservar notion_page_id dos dados originais\nconst finalData = {\n  ...currentData,\n  notion_page_id: originalData.notion_page_id,\n  post_title: originalData.post_title,\n  instagram_published: true\n};\n\nconsole.log('✅ Dados finais para Notion:', JSON.stringify(finalData, null, 2));\n\nreturn { json: finalData };"
+      },
+      "id": "preserve-notion-id",
+      "name": "Preserve Notion ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notion_page_id }}",
+          "mode": "id",
+          "__regex": "^([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Publicado"
+            },
+            {
+              "key": "Publicar?|checkbox",
+              "checkboxValue": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-notion-main",
+      "name": "Update Notion Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_credentials",
+          "name": "Notion API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Notion Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion Posts": {
+      "main": [
+        [
+          {
+            "node": "Process Instagram Posts",
+            "type": "main", 
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Instagram Posts": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Preserve Notion ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Notion ID": {
+      "main": [
+        [
+          {
+            "node": "Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "11.0.0-final",
+  "id": "postflow-instagram-v11-final",
+  "meta": {
+    "instanceId": "postflow-instagram-v11-final"
+  }
+}

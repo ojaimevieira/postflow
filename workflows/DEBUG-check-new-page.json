@@ -1,0 +1,94 @@
+{
+  "name": "DEBUG - Check New Page",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-debug",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/1c868fa9-6b04-811a-b439-da9ae42cf538/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type", 
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "{\n  \"filter\": {\n    \"and\": [\n      {\n        \"property\": \"Status\",\n        \"select\": {\n          \"equals\": \"Agendado\"\n        }\n      },\n      {\n        \"property\": \"Publicar?\",\n        \"checkbox\": {\n          \"equals\": true\n        }\n      },\n      {\n        \"property\": \"Plataforma\",\n        \"multi_select\": {\n          \"contains\": \"Instagram\"\n        }\n      }\n    ]\n  },\n  \"page_size\": 10\n}",
+        "options": {}
+      },
+      "id": "notion-query-debug",
+      "name": "Query Notion Posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "notion_http_auth",
+          "name": "Notion HTTP Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// DEBUG - Verificar todas as páginas encontradas\nconst items = $input.all();\n\nconsole.log('🔍 === DEBUG PÁGINAS ENCONTRADAS ===');\nconsole.log('Total items recebidos:', items.length);\n\nfor (const item of items) {\n  const responseData = item.json;\n  const pages = responseData.results || [];\n  \n  console.log(`\\n📄 Total páginas retornadas: ${pages.length}`);\n  \n  if (pages.length === 0) {\n    console.log('❌ NENHUMA PÁGINA ENCONTRADA!');\n    console.log('Verifique se existe página com:');\n    console.log('- Status = \"Agendado\"');\n    console.log('- Publicar? = true');\n    console.log('- Plataforma contém \"Instagram\"');\n    return [{ json: { error: 'Nenhuma página encontrada' } }];\n  }\n  \n  pages.forEach((page, index) => {\n    console.log(`\\n=== PÁGINA ${index + 1} ===`);\n    console.log('🆔 ID:', page.id);\n    \n    const nome = page.properties?.Nome?.title?.[0]?.text?.content || 'SEM NOME';\n    const status = page.properties?.Status?.select?.name || 'SEM STATUS';\n    const publicar = page.properties?.['Publicar?']?.checkbox;\n    const plataformas = page.properties?.Plataforma?.multi_select || [];\n    const media = page.properties?.Mídia?.files?.[0];\n    const texto = page.properties?.['Texto do Post']?.rich_text?.[0]?.text?.content || 'SEM TEXTO';\n    \n    console.log('📝 Nome:', nome);\n    console.log('📊 Status:', status);\n    console.log('✅ Publicar?:', publicar);\n    console.log('🎯 Plataformas:', plataformas.map(p => p.name));\n    console.log('📸 Tem mídia?:', !!media);\n    console.log('📄 Texto:', texto.substring(0, 50) + '...');\n    \n    // Verificar se passou nos filtros\n    const passouStatus = status === 'Agendado';\n    const passouPublicar = publicar === true;\n    const passouPlataforma = plataformas.some(p => p.name === 'Instagram');\n    const temMedia = !!media;\n    \n    console.log('\\n🔍 VERIFICAÇÃO DE FILTROS:');\n    console.log(`   Status \"Agendado\": ${passouStatus ? '✅' : '❌'} (atual: ${status})`);\n    console.log(`   Publicar? = true: ${passouPublicar ? '✅' : '❌'} (atual: ${publicar})`);\n    console.log(`   Tem Instagram: ${passouPlataforma ? '✅' : '❌'} (plataformas: ${plataformas.map(p => p.name).join(', ')})`);\n    console.log(`   Tem mídia: ${temMedia ? '✅' : '❌'}`);\n    \n    const aprovado = passouStatus && passouPublicar && passouPlataforma && temMedia;\n    console.log(`\\n🎯 RESULTADO: ${aprovado ? '✅ APROVADO' : '❌ REJEITADO'}`);\n  });\n}\n\nreturn items;"
+      },
+      "id": "debug-check",
+      "name": "DEBUG Check Pages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Notion Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion Posts": {
+      "main": [
+        [
+          {
+            "node": "DEBUG Check Pages",
+            "type": "main", 
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "debug-new-page",
+  "id": "debug-new-page",
+  "meta": {
+    "instanceId": "debug-new-page"
+  }
+}

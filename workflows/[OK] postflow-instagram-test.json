@@ -1,0 +1,121 @@
+{
+  "name": "PostFlow Instagram - TESTE DIRETO",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dados de teste fixos para validar Instagram API\nreturn [\n  {\n    json: {\n      caption: \"🚀 Teste PostFlow Instagram API\\n\\nTestando automação direta!\\n\\n#test #automation #postflow\",\n      media_url: \"https://images.unsplash.com/photo-1611262588024-d12430b98920?w=800&h=600&fit=crop&auto=format\"\n    }\n  }\n];"
+      },
+      "id": "test-data-1", 
+      "name": "Test Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPW9BZChikiNEBEhmQw7ZB6cPF61pFKLC4KIsK0fG4CjtrqEdT7WYI33XFWKCu6hJtHZADYkINxaI6gDzSbKxIWusZBcCqHQDHRgoI9JYQZAggPloJfYaTu7FyNoSyXaC1NC3L5oRBkBZCZAUCzfYIUOMFogmFw92e8WqDmEdlmnqLFMI0nskdbR6lcN1oyeF6jpX5Xpt7TuJfqh84chpGAlIW2ze7XXzkHcMYmO4NtWtJ4sIwQZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "create-media-test-1",
+      "name": "Create Instagram Media - TEST",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish", 
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPW9BZChikiNEBEhmQw7ZB6cPF61pFKLC4KIsK0fG4CjtrqEdT7WYI33XFWKCu6hJtHZADYkINxaI6gDzSbKxIWusZBcCqHQDHRgoI9JYQZAggPloJfYaTu7FyNoSyXaC1NC3L5oRBkBZCZAUCzfYIUOMFogmFw92e8WqDmEdlmnqLFMI0nskdbR6lcN1oyeF6jpX5Xpt7TuJfqh84chpGAlIW2ze7XXzkHcMYmO4NtWtJ4sIwQZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish-test-1",
+      "name": "Publish Instagram Post - TEST",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Test Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Data": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media - TEST",
+            "type": "main", 
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media - TEST": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post - TEST",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "postflow-instagram-test",
+  "meta": {
+    "instanceId": "postflow-instagram-test-v1"
+  }
+}

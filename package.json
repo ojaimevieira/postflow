@@ -1,0 +1,34 @@
+{
+  "name": "postflow",
+  "version": "1.0.0",
+  "description": "PostFlow - Workflow de automação para postagens no Instagram usando N8n e Notion",
+  "main": "workflows/postflow-instagram.json",
+  "scripts": {
+    "dev": "echo 'PostFlow - Instagram Automation Workflow'",
+    "docs": "echo 'Documentação do PostFlow disponível em README.md'"
+  },
+  "keywords": [
+    "n8n",
+    "automation", 
+    "instagram",
+    "notion",
+    "social-media",
+    "workflow",
+    "agendamento"
+  ],
+  "author": "Jaime Vieira",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "local"
+  },
+  "notion": {
+    "database_id": "1c868fa96b04811ab439da9ae42cf538",
+    "database_name": "Banco de Postagens"
+  },
+  "instagram": {
+    "app_id": "1324691276112631",
+    "page_name": "perfilx0",
+    "supported_types": ["photo", "video", "carousel"]
+  }
+}

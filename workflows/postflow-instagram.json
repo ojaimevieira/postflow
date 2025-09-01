@@ -1,0 +1,221 @@
+{
+  "name": "PostFlow Instagram Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {              "value": "EAAgHDLKanTYBPW9BZChikiNEBEhmQw7ZB6cPF61pFKLC4KIsK0fG4CjtrqEdT7WYI33XFWKCu6hJtHZADYkINxaI6gDzSbKxIWusZBcCqHQDHRgoI9JYQZAggPloJfYaTu7FyNoSyXaC1NC3L5oRBkBZCZAUCzfYIUOMFogmFw92e8WqDmEdlmnqLFMI0nskdbR6lcN1oyeF6jpX5Xpt7TuJfqh84chpGAlIW2ze7XXzkHcMYmO4NtWtJ4sIwQZD"
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+      "name": "Schedule Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getMany", 
+        "databaseId": "1c868fa96b04811ab439da9ae42cf538",
+        "simple": false,
+        "options": {
+          "filter": {
+            "conditions": [
+              {
+                "key": "Status",
+                "condition": "equals",
+                "value": "Aprovado"
+              },
+              {
+                "key": "Publicar?",
+                "condition": "equals", 
+                "value": true
+              }
+            ],
+            "combineOperation": "and"
+          }
+        }
+      },
+      "id": "b2c3d4e5-f6g7-8h9i-0j1k-l2m3n4o5p6q7",
+      "name": "Query Approved Posts",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_credentials",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow - Filter Instagram posts ready to publish\nconst items = $input.all();\nconst readyPosts = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Check if post is for Instagram\n  const platforms = data.properties.Plataforma?.multi_select || [];\n  const hasInstagram = platforms.some(p => p.name === 'Instagram');\n  \n  if (!hasInstagram) continue;\n  \n  // Check if scheduled time has arrived\n  const scheduledDate = data.properties['Data do Agendamento']?.date?.start;\n  if (!scheduledDate) continue;\n  \n  const now = new Date();\n  const postDate = new Date(scheduledDate);\n  \n  // Only process if time has arrived (5 min buffer)\n  if (postDate > now) continue;\n  \n  // Extract post data\n  const postTitle = data.properties.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n  const postText = data.properties['Texto do Post']?.rich_text?.[0]?.text?.content || '';\n  const hashtags = data.properties.Hashtags?.multi_select?.map(tag => `#${tag.name}`).join(' ') || '';\n  const media = data.properties['Mídia']?.files?.[0];\n  \n  if (!media) {\n    console.log(`Post \"${postTitle}\" has no media`);\n    continue;\n  }\n  \n  // Build caption\n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  readyPosts.push({\n    notion_page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    media_url: media.external?.url || media.file?.url\n  });\n}\n\nreturn readyPosts.map(post => ({ json: post }));"
+      },
+      "id": "c3d4e5f6-g7h8-9i0j-1k2l-m3n4o5p6q7r8",
+      "name": "Filter Instagram Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPW9BZChikiNEBEhmQw7ZB6cPF61pFKLC4KIsK0fG4CjtrqEdT7WYI33XFWKCu6hJtHZADYkINxaI6gDzSbKxIWusZBcCqHQDHRgoI9JYQZAggPloJfYaTu7FyNoSyXaC1NC3L5oRBkBZCZAUCzfYIUOMFogmFw92e8WqDmEdlmnqLFMI0nskdbR6lcN1oyeF6jpX5Xpt7TuJfqh84chpGAlIW2ze7XXzkHcMYmO4NtWtJ4sIwQZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e5f6g7-h8i9-0j1k-2l3m-n4o5p6q7r8s9",
+      "name": "Create Instagram Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST", 
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAgHDLKanTYBPc5FcKnSHXZC9D5STZAeYOBUx8ZCAoPEl2daKFFAVbVJ8RHIxi9UpRj4pSU3fyMzDoVvaZBRB85Vbs6uLs339zqvMjZBqxxBAuvM7xsDZCskpsghxI8UzULjna7vBdmZB39fHJeksSLZCKQILAKl7UwdbjrIUCdyKR7ukSkPd4QJOl6ZBc588Yvz9uISZAtnCGNTvB31Ln4NGjhr9dg9A7IDbwPIOkYwPSzexGdFJPZC88xMC4J0yte"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6g7h8-i9j0-1k2l-3m4n-o5p6q7r8s9t0",
+      "name": "Publish Instagram Post",
+      "type": "n8n-nodes-base.httpRequest", 
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{ $('Filter Instagram Posts').item.json.notion_page_id }}",
+        "simple": false,
+        "properties": {
+          "properties": [
+            {
+              "key": "Status",
+              "type": "select",
+              "select": "Publicado"
+            },
+            {
+              "key": "Publicar?",
+              "type": "checkbox",
+              "checkbox": false
+            }
+          ]
+        }
+      },
+      "id": "f6g7h8i9-j0k1-2l3m-4n5o-p6q7r8s9t0u1",
+      "name": "Update Post Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_credentials",
+          "name": "Notion API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Query Approved Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Approved Posts": {
+      "main": [
+        [
+          {
+            "node": "Filter Instagram Posts",
+            "type": "main", 
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Instagram Posts": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Update Post Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "id": "postflow-instagram",
+  "meta": {
+    "instanceId": "postflow-instagram-v1"
+  }
+}
