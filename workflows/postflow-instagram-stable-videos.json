@@ -86,17 +86,38 @@
       "parameters": {
         "method": "GET",
         "url": "={{ $json.download_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "pt-BR,pt;q=0.9,en;q=0.8"
+            },
+            {
+              "name": "Referer",
+              "value": "https://drive.google.com/"
+            }
+          ]
+        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "file"
             }
           },
-          "timeout": 120000,
+          "timeout": 180000,
           "redirect": {
             "redirect": {
               "followRedirects": true,
-              "maxRedirects": 5
+              "maxRedirects": 10
             }
           }
         }
