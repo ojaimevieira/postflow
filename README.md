@@ -88,19 +88,38 @@ NOTION_DATABASE_ID=1c868fa96b04811ab439da9ae42cf538
    - N8n verifica a cada 5 minutos
    - Post é publicado automaticamente na data/hora definida
 
-## 📁 Estrutura do Projeto
+## 📁 Arquivos Disponíveis
 
+### Workflows N8n:
+- **`postflow-instagram-v1.json`** - Versão inicial completa
+- **`postflow-instagram-beta.json`** - Versão BETA otimizada (apenas fotos)
+- **`postflow-instagram-beta-videos.json`** - Versão BETA com suporte a fotos + vídeos
+
+### Documentação:
+- **`docs/configuracao.md`** - Guia de configuração completo
+- **`docs/importacao.md`** - Como importar workflows no N8n
+- **`docs/status-final.md`** - Status do projeto e funcionalidades
+
+## 🎬 Suporte a Vídeos
+
+### Google Drive Integration
+O workflow `postflow-instagram-beta-videos.json` inclui conversão automática de URLs do Google Drive:
+
+**URL Original (Google Drive):**
 ```
-postflow/
-├── .env.example          # Exemplo de variáveis
-├── .env                  # Suas credenciais (não versionar)
-├── package.json          # Configurações do projeto
-├── README.md            # Esta documentação
-├── workflows/           # Workflows do N8n
-│   └── postflow-instagram.json
-├── docs/               # Documentação adicional
-└── tests/              # Testes (futuro)
+https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74mZa/view
 ```
+
+**URL Convertida (para Instagram):**
+```
+https://drive.google.com/uc?export=download&id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74mZa
+```
+
+### Detecção Automática de Mídia
+- **Fotos:** `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`
+- **Vídeos:** `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm`, `.m4v`
+
+O workflow detecta automaticamente o tipo de mídia e usa o endpoint correto do Instagram (`image_url` vs `video_url`).
 
 ## 🔐 Segurança
 
