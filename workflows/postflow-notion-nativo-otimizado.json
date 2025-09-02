@@ -1,0 +1,347 @@
+{
+  "name": "🔥 PostFlow - Notion Nativo OTIMIZADO",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "triggerAtSecond": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every 30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "1cc68fa96b0480a5ad81f57648a2392c",
+        "options": {
+          "downloadFiles": true
+        },
+        "filterRequest": "json",
+        "filters": {
+          "and": [
+            {
+              "property": "Status",
+              "select": {
+                "equals": "Agendado"
+              }
+            },
+            {
+              "property": "Publicar?",
+              "checkbox": {
+                "equals": true
+              }
+            },
+            {
+              "property": "Plataforma",
+              "multi_select": {
+                "contains": "Instagram"
+              }
+            }
+          ]
+        },
+        "sortRequest": "json",
+        "sorts": [
+          {
+            "property": "Data do Agendamento",
+            "direction": "ascending"
+          }
+        ],
+        "limit": 10
+      },
+      "id": "query-notion-native",
+      "name": "Query Notion (Native Optimized)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow NATIVO OTIMIZADO - Com filtros do Notion e binary data direto\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🔥 NATIVE OPTIMIZED - Processing ${items.length} items (filtered by Notion)`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\n// Helper function to detect media type from binary data\nfunction getMediaTypeFromBinary(binaryData, fileName) {\n  // Check mime type first (most reliable)\n  if (binaryData && binaryData.mimeType) {\n    const mimeType = binaryData.mimeType.toLowerCase();\n    if (mimeType.startsWith('video/')) {\n      console.log(`🎬 Detected VIDEO from mime type: ${mimeType}`);\n      return 'VIDEO';\n    }\n    if (mimeType.startsWith('image/')) {\n      console.log(`📸 Detected IMAGE from mime type: ${mimeType}`);\n      return 'IMAGE';\n    }\n  }\n  \n  // Fallback to filename extension\n  if (fileName) {\n    const name = fileName.toLowerCase();\n    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];\n    \n    for (const ext of videoExtensions) {\n      if (name.includes(ext)) {\n        console.log(`🎬 Detected VIDEO from filename: ${fileName}`);\n        return 'VIDEO';\n      }\n    }\n  }\n  \n  console.log(`📸 Detected IMAGE (default): ${fileName}`);\n  return 'IMAGE';\n}\n\nfor (const item of items) {\n  const data = item.json;\n  const binaryData = item.binary || {};\n  \n  console.log('\\n=== 🔥 Processing Notion page (NATIVE OPTIMIZED) ===');\n  \n  const postTitle = data.properties?.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n  console.log(`📝 Post: \"${postTitle}\"`);\n  console.log(`🆔 Page ID: ${data.id}`);\n  \n  // Status já foi filtrado pelo Notion, mas vamos verificar\n  const status = data.properties?.Status?.select?.name;\n  const shouldPublish = data.properties?.['Publicar?']?.checkbox;\n  const platforms = data.properties?.Plataforma?.multi_select || [];\n  \n  console.log(`📊 Status: ${status}`);\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  console.log(`🎯 Platforms: [${platforms.map(p => p.name).join(', ')}]`);\n  \n  // Check scheduled date/time (ainda precisamos validar o horário)\n  const scheduledDateData = data.properties?.['Data do Agendamento']?.date;\n  console.log(`📅 Scheduled date data:`, scheduledDateData);\n  \n  if (!scheduledDateData) {\n    console.log('❌ SKIP: No scheduled date set');\n    continue;\n  }\n  \n  const scheduledStart = scheduledDateData.start;\n  let scheduledDate;\n  \n  if (scheduledStart.includes('T')) {\n    scheduledDate = new Date(scheduledStart);\n  } else {\n    scheduledDate = new Date(scheduledStart + 'T09:00:00');\n  }\n  \n  console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n  console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n  \n  const isTimeToPublish = now >= scheduledDate;\n  console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n  \n  if (!isTimeToPublish) {\n    const timeUntil = scheduledDate - now;\n    const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n    console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n    continue;\n  }\n  \n  // Extract post data\n  const postText = data.properties?.['Texto do Post']?.rich_text?.[0]?.text?.content || '';\n  const hashtags = data.properties?.Hashtags?.multi_select?.map(tag => tag.name.startsWith('#') ? tag.name : `#${tag.name}`).join(' ') || '';\n  \n  // Check for binary data (files downloaded by Notion)\n  console.log(`📦 Binary data keys:`, Object.keys(binaryData));\n  \n  if (Object.keys(binaryData).length === 0) {\n    console.log(`❌ SKIP: Post \"${postTitle}\" has no binary data`);\n    continue;\n  }\n  \n  // Process first binary file (usually 'data' key)\n  const firstBinaryKey = Object.keys(binaryData)[0];\n  const mediaData = binaryData[firstBinaryKey];\n  \n  if (!mediaData) {\n    console.log(`❌ SKIP: No media data found in binary`);\n    continue;\n  }\n  \n  const fileName = mediaData.fileName || mediaData.name || 'media_file';\n  const fileSize = mediaData.fileSize || 0;\n  const mimeType = mediaData.mimeType || 'unknown';\n  \n  console.log(`📁 Binary file: ${fileName}`);\n  console.log(`📊 File info: ${mimeType}, ${Math.round(fileSize/1024/1024*100)/100} MB`);\n  \n  // Detect media type from binary data\n  const mediaType = getMediaTypeFromBinary(mediaData, fileName);\n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  console.log(`🔥 POST APPROVED: \"${postTitle}\" ready for native Instagram ${mediaType} posting!`);\n  console.log(`📁 File: ${fileName} (${Math.round(fileSize/1024/1024*100)/100}MB)`);\n  \n  readyPosts.push({\n    page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    file_name: fileName,\n    media_type: mediaType,\n    file_size: fileSize,\n    mime_type: mimeType,\n    scheduled_date: scheduledDate.toISOString(),\n    binary_key: firstBinaryKey\n  });\n}\n\nconsole.log(`\\n🔥 === NATIVE OPTIMIZED RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW (OPTIMIZED):');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${Math.round(post.file_size/1024/1024*100)/100}MB) (scheduled: ${new Date(post.scheduled_date).toLocaleString('pt-BR')})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\nreturn readyPosts.map(post => ({\n  json: post,\n  binary: {\n    data: $input.item(readyPosts.indexOf(post)).binary[post.binary_key]\n  }\n}));"
+      },
+      "id": "process-posts-optimized",
+      "name": "Process Posts (Optimized)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "video-check",
+              "leftValue": "={{ $json.media_type }}",
+              "rightValue": "VIDEO",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-video-check",
+      "name": "Is Video?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "video_data",
+        "options": {}
+      },
+      "id": "upload-video-instagram",
+      "name": "Upload Video to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "media_type",
+              "value": "IMAGE"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "image_data",
+        "options": {}
+      },
+      "id": "upload-image-instagram",
+      "name": "Upload Image to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_FACEBOOK_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish-instagram-post",
+      "name": "Publish Instagram Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.page_id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Publicado"
+            },
+            {
+              "key": "Publicar?|checkbox"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-notion-status",
+      "name": "Update Notion Status",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        400,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (Every 30s)": {
+      "main": [
+        [
+          {
+            "node": "Query Notion (Native Optimized)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion (Native Optimized)": {
+      "main": [
+        [
+          {
+            "node": "Process Posts (Optimized)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Posts (Optimized)": {
+      "main": [
+        [
+          {
+            "node": "Is Video?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Video?": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upload Image to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Publish Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Update Notion Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "native-optimized-1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "native-notion-optimized"
+  },
+  "id": "postflow-native-optimized",
+  "tags": []
+}
