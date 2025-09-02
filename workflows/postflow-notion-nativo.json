@@ -26,36 +26,44 @@
       "parameters": {
         "resource": "databasePage",
         "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "1c868fa9-6b04-811a-b439-da9ae42cf538",
-          "mode": "id",
-          "__regex": "^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$"
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "1cc68fa96b0480a5ad81f57648a2392c",
+        "options": {
+          "downloadFiles": true
         },
-        "filterType": "manual",
-        "matchType": "anyFilter",
-        "conditions": {
-          "conditions": [
+        "filterRequest": "json",
+        "filters": {
+          "and": [
             {
-              "key": "Status",
-              "condition": "equals",
-              "value": "Agendado"
+              "property": "Status",
+              "select": {
+                "equals": "Agendado"
+              }
             },
             {
-              "key": "Publicar?",
-              "condition": "equals",
-              "value": true
+              "property": "Publicar?",
+              "checkbox": {
+                "equals": true
+              }
             },
             {
-              "key": "Plataforma",
-              "condition": "contains",
-              "value": "Instagram"
+              "property": "Plataforma",
+              "multi_select": {
+                "contains": "Instagram"
+              }
             }
           ]
         },
-        "options": {
-          "limit": 10
-        }
+        "sortRequest": "json",
+        "sorts": [
+          {
+            "property": "Data do Agendamento",
+            "direction": "ascending"
+          }
+        ],
+        "limit": 10
       },
       "id": "query-notion-native",
       "name": "Query Notion (Native)",
