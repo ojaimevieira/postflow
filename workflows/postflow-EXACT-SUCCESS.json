@@ -40,9 +40,7 @@
             }
           ]
         },
-        "options": {
-          "downloadFiles": true
-        }
+        "options": {}
       },
       "id": "a8c45c48-83f9-43ae-800b-6306b2f8991f",
       "name": "Query Notion (Native + Filtered)",
@@ -55,7 +53,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// PostFlow FINAL WORKING - Based on user's successful config\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🚀 FINAL WORKING WORKFLOW - Processing ${items.length} items (property_* format confirmed)`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\n// Helper function to detect media type from binary data\nfunction getMediaTypeFromBinary(binaryData, fileName) {\n  // Check mime type first (most reliable)\n  if (binaryData && binaryData.mimeType) {\n    const mimeType = binaryData.mimeType.toLowerCase();\n    if (mimeType.startsWith('video/')) {\n      console.log(`🎬 Detected VIDEO from mime type: ${mimeType}`);\n      return 'VIDEO';\n    }\n    if (mimeType.startsWith('image/')) {\n      console.log(`📸 Detected IMAGE from mime type: ${mimeType}`);\n      return 'IMAGE';\n    }\n  }\n  \n  // Fallback to filename extension\n  if (fileName) {\n    const name = fileName.toLowerCase();\n    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];\n    \n    for (const ext of videoExtensions) {\n      if (name.includes(ext)) {\n        console.log(`🎬 Detected VIDEO from filename: ${fileName}`);\n        return 'VIDEO';\n      }\n    }\n  }\n  \n  console.log(`📸 Detected IMAGE (default): ${fileName}`);\n  return 'IMAGE';\n}\n\nfor (const item of items) {\n  const data = item.json;\n  const binaryData = item.binary || {};\n  \n  console.log('\\n=== 🚀 Processing Notion page (WORKING VERSION) ===');\n  console.log('Raw data structure:', JSON.stringify(Object.keys(data), null, 2));\n  \n  // Use correct property_* format confirmed by user\n  const postTitle = data.property_nome || data.name || 'Untitled Post';\n  console.log(`📝 Post: \"${postTitle}\"`);\n  console.log(`🆔 Page ID: ${data.id}`);\n  \n  // Check all conditions using property_* format\n  const status = data.property_status;\n  console.log(`📊 Status: ${status}`);\n  if (status !== 'Agendado') {\n    console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n    continue;\n  }\n  \n  const shouldPublish = data.property_publicar;\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  if (!shouldPublish) {\n    console.log('❌ SKIP: Publicar? is false');\n    continue;\n  }\n  \n  // Handle platform array format (confirmed from user data)\n  const platforms = data.property_plataforma || [];\n  let platformNames = [];\n  let hasInstagram = false;\n  \n  if (Array.isArray(platforms)) {\n    platformNames = platforms;\n    hasInstagram = platforms.includes('Instagram');\n  } else if (typeof platforms === 'string') {\n    platformNames = [platforms];\n    hasInstagram = platforms === 'Instagram';\n  }\n  \n  console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n  \n  if (!hasInstagram) {\n    console.log('❌ SKIP: No Instagram platform');\n    continue;\n  }\n  \n  // Check scheduled date using property_data_do_agendamento\n  const scheduledDateData = data.property_data_do_agendamento;\n  console.log(`📅 Scheduled date data:`, scheduledDateData);\n  \n  if (!scheduledDateData) {\n    console.log('❌ SKIP: No scheduled date set');\n    continue;\n  }\n  \n  // Parse scheduled date (handle user's confirmed format)\n  let scheduledDate;\n  \n  if (typeof scheduledDateData === 'object' && scheduledDateData.start) {\n    const scheduledStart = scheduledDateData.start;\n    if (scheduledStart.includes('T')) {\n      // Has time component (like: 2025-09-01T21:53:00.000-03:00)\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      // Date only - assume 9:00 AM local time\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n  } else if (typeof scheduledDateData === 'string') {\n    scheduledDate = new Date(scheduledDateData);\n  } else {\n    console.log('❌ SKIP: Invalid scheduled date format');\n    continue;\n  }\n  \n  console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n  console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n  \n  // Check if it's time to publish\n  const isTimeToPublish = now >= scheduledDate;\n  console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n  \n  if (!isTimeToPublish) {\n    const timeUntil = scheduledDate - now;\n    const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n    console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n    continue;\n  }\n  \n  // Extract post data using property_* format\n  const postText = data.property_texto_do_post || '';\n  \n  // Handle hashtags array format (confirmed from user data)\n  let hashtags = '';\n  if (data.property_hashtags) {\n    if (Array.isArray(data.property_hashtags)) {\n      hashtags = data.property_hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ');\n    } else if (typeof data.property_hashtags === 'string') {\n      hashtags = data.property_hashtags.startsWith('#') ? data.property_hashtags : `#${data.property_hashtags}`;\n    }\n  }\n  \n  // Check for binary data (files downloaded by Notion)\n  console.log(`📦 Binary data keys:`, Object.keys(binaryData));\n  \n  if (Object.keys(binaryData).length === 0) {\n    console.log(`❌ SKIP: Post \"${postTitle}\" has no binary data`);\n    continue;\n  }\n  \n  // Get the first binary file (user confirmed binary_key: \"Mídia_0\")\n  const binaryKeys = Object.keys(binaryData);\n  const firstBinaryKey = binaryKeys[0]; // This should be \"Mídia_0\" as confirmed\n  const mediaData = binaryData[firstBinaryKey];\n  \n  if (!mediaData) {\n    console.log(`❌ SKIP: No media data found in binary key: ${firstBinaryKey}`);\n    continue;\n  }\n  \n  const fileName = mediaData.fileName || mediaData.name || 'media_file';\n  const fileSize = mediaData.fileSize || 0;\n  const mimeType = mediaData.mimeType || 'unknown';\n  \n  console.log(`📁 Binary file: ${fileName}`);\n  console.log(`📊 File info: ${mimeType}, ${Math.round(fileSize/1024/1024*100)/100} MB`);\n  \n  // Detect media type (user confirmed: media_type: \"VIDEO\")\n  const mediaType = getMediaTypeFromBinary(mediaData, fileName);\n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  console.log(`🚀 POST APPROVED: \"${postTitle}\" ready for Instagram ${mediaType} posting!`);\n  console.log(`📁 File: ${fileName} (${Math.round(fileSize/1024/1024*100)/100}MB)`);\n  \n  readyPosts.push({\n    notion_page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    media_type: mediaType,\n    file_name: fileName,\n    file_size: fileSize,\n    mime_type: mimeType,\n    scheduled_date: scheduledDate.toISOString(),\n    binary_key: firstBinaryKey,\n    // Preserve original data\n    _preserve_notion_id: data.id,\n    _preserve_title: postTitle\n  });\n}\n\nconsole.log(`\\n🚀 === FINAL WORKING RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW (WORKING):');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${Math.round(post.file_size/1024/1024*100)/100}MB) (scheduled: ${new Date(post.scheduled_date).toLocaleString('pt-BR')})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\n// Return data with binary preserved correctly (matching user's working format)\nreturn readyPosts.map((post, index) => {\n  // Find the correct item that matches this post\n  const matchingItem = items.find(item => item.json.id === post.notion_page_id);\n  \n  return {\n    json: post,\n    binary: {\n      data: matchingItem ? matchingItem.binary[post.binary_key] : null\n    }\n  };\n});"
+        "jsCode": "// PostFlow URL-BASED - Using direct URLs from Notion\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🚀 URL-BASED WORKFLOW - Processing ${items.length} items`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  console.log('\\n=== 🚀 Processing Notion page (URL-BASED) ===');\n  console.log('Raw data structure:', JSON.stringify(Object.keys(data), null, 2));\n  \n  // Use correct property_* format\n  const postTitle = data.property_nome || data.name || 'Untitled Post';\n  console.log(`📝 Post: \"${postTitle}\"`);\n  console.log(`🆔 Page ID: ${data.id}`);\n  \n  // Check all conditions using property_* format\n  const status = data.property_status;\n  console.log(`📊 Status: ${status}`);\n  if (status !== 'Agendado') {\n    console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n    continue;\n  }\n  \n  const shouldPublish = data.property_publicar;\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  if (!shouldPublish) {\n    console.log('❌ SKIP: Publicar? is false');\n    continue;\n  }\n  \n  // Handle platform array format\n  const platforms = data.property_plataforma || [];\n  let platformNames = [];\n  let hasInstagram = false;\n  \n  if (Array.isArray(platforms)) {\n    platformNames = platforms;\n    hasInstagram = platforms.includes('Instagram');\n  } else if (typeof platforms === 'string') {\n    platformNames = [platforms];\n    hasInstagram = platforms === 'Instagram';\n  }\n  \n  console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n  \n  if (!hasInstagram) {\n    console.log('❌ SKIP: No Instagram platform');\n    continue;\n  }\n  \n  // Check scheduled date\n  const scheduledDateData = data.property_data_do_agendamento;\n  console.log(`📅 Scheduled date data:`, scheduledDateData);\n  \n  if (!scheduledDateData) {\n    console.log('❌ SKIP: No scheduled date set');\n    continue;\n  }\n  \n  // Parse scheduled date\n  let scheduledDate;\n  \n  if (typeof scheduledDateData === 'object' && scheduledDateData.start) {\n    const scheduledStart = scheduledDateData.start;\n    if (scheduledStart.includes('T')) {\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n  } else if (typeof scheduledDateData === 'string') {\n    scheduledDate = new Date(scheduledDateData);\n  } else {\n    console.log('❌ SKIP: Invalid scheduled date format');\n    continue;\n  }\n  \n  console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n  console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n  \n  // Check if it's time to publish\n  const isTimeToPublish = now >= scheduledDate;\n  console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n  \n  if (!isTimeToPublish) {\n    const timeUntil = scheduledDate - now;\n    const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n    console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n    continue;\n  }\n  \n  // Extract post data using property_* format\n  const postText = data.property_texto_do_post || '';\n  \n  // Handle hashtags array format\n  let hashtags = '';\n  if (data.property_hashtags) {\n    if (Array.isArray(data.property_hashtags)) {\n      hashtags = data.property_hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ');\n    } else if (typeof data.property_hashtags === 'string') {\n      hashtags = data.property_hashtags.startsWith('#') ? data.property_hashtags : `#${data.property_hashtags}`;\n    }\n  }\n  \n  // Get media URL from Notion (now expecting URL instead of file)\n  const mediaUrls = data.property_m_dia || [];\n  console.log(`📦 Media URLs:`, mediaUrls);\n  \n  if (!mediaUrls || mediaUrls.length === 0) {\n    console.log(`❌ SKIP: Post \"${postTitle}\" has no media URLs`);\n    continue;\n  }\n  \n  // Get the first media URL\n  let mediaUrl = Array.isArray(mediaUrls) ? mediaUrls[0] : mediaUrls;\n  console.log(`🔗 Media URL: ${mediaUrl}`);\n  \n  if (!mediaUrl || typeof mediaUrl !== 'string') {\n    console.log(`❌ SKIP: Invalid media URL format`);\n    continue;\n  }\n  \n  // Add http:// if missing\n  if (!mediaUrl.startsWith('http://') && !mediaUrl.startsWith('https://')) {\n    mediaUrl = 'http://' + mediaUrl;\n    console.log(`� Fixed Media URL: ${mediaUrl}`);\n  }\n  \n  // Detect media type from URL\n  const mediaType = mediaUrl.toLowerCase().includes('.mp4') || \n                   mediaUrl.toLowerCase().includes('.mov') || \n                   mediaUrl.toLowerCase().includes('.avi') ? 'REELS' : 'IMAGE';\n  \n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  console.log(`🚀 POST APPROVED: \"${postTitle}\" ready for Instagram ${mediaType} posting!`);\n  console.log(`� Media URL: ${mediaUrl}`);\n  \n  readyPosts.push({\n    notion_page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    media_type: mediaType,\n    media_url: mediaUrl,\n    scheduled_date: scheduledDate.toISOString(),\n    // Preserve original data\n    _preserve_notion_id: data.id,\n    _preserve_title: postTitle\n  });\n}\n\nconsole.log(`\\n🚀 === URL-BASED RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW:');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${post.media_url})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\nreturn readyPosts;"
       },
       "id": "f3319254-656b-4e17-af86-c5a8501c925d",
       "name": "Process Posts (WORKING)",
@@ -78,7 +76,7 @@
             {
               "id": "video-detection",
               "leftValue": "={{ $json.media_type }}",
-              "rightValue": "VIDEO",
+              "rightValue": "REELS",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -112,18 +110,22 @@
           ]
         },
         "sendBody": true,
-        "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url", 
+              "value": "={{ $json.media_url }}"
+            },
             {
               "name": "caption",
               "value": "={{ $json.caption }}"
             }
           ]
         },
-        "sendBinaryData": true,
-        "binaryPropertyName": "data",
-        "binaryParameterName": "video_url",
         "options": {}
       },
       "id": "9bc467af-9b24-4169-ab44-dc939ff7a492",
@@ -149,18 +151,18 @@
           ]
         },
         "sendBody": true,
-        "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.media_url }}"
+            },
             {
               "name": "caption",
               "value": "={{ $json.caption }}"
             }
           ]
         },
-        "sendBinaryData": true,
-        "binaryPropertyName": "data",
-        "binaryParameterName": "image_url",
         "options": {}
       },
       "id": "5aafb820-5d93-42be-ac54-0333f402a354",
@@ -170,6 +172,20 @@
       "position": [
         768,
         336
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-for-video-processing",
+      "name": "Wait for Video Processing (30s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        176
       ]
     },
     {
@@ -202,7 +218,7 @@
       "typeVersion": 4.2,
       "position": [
         992,
-        256
+        176
       ]
     },
     {
@@ -288,6 +304,17 @@
       ]
     },
     "Upload Video to Instagram (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Wait for Video Processing (30s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Video Processing (30s)": {
       "main": [
         [
           {
