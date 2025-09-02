@@ -31,43 +31,40 @@
         "options": {
           "downloadFiles": true
         },
-        "filterRequest": "json",
-        "filters": {
-          "and": [
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "conditions": {
+          "conditions": [
             {
-              "property": "Status",
-              "select": {
-                "equals": "Agendado"
-              }
+              "key": "Status",
+              "condition": "equals",
+              "value": "Agendado"
             },
             {
-              "property": "Publicar?",
-              "checkbox": {
-                "equals": true
-              }
+              "key": "Publicar?",
+              "condition": "equals",
+              "value": true
             },
             {
-              "property": "Plataforma",
-              "multi_select": {
-                "contains": "Instagram"
-              }
+              "key": "Plataforma",
+              "condition": "contains",
+              "value": "Instagram"
             },
             {
-              "property": "Data do Agendamento",
-              "date": {
-                "on_or_before": "{{ $now.toISOString().split('T')[0] }}"
-              }
+              "key": "Data do Agendamento",
+              "condition": "on_or_before",
+              "value": "{{ $now.toISOString().split('T')[0] }}"
             }
           ]
         },
-        "sortRequest": "json",
-        "sorts": [
+        "sortType": "manual",
+        "sortProperties": [
           {
-            "property": "Data do Agendamento",
+            "key": "Data do Agendamento",
             "direction": "ascending"
           }
         ],
-        "limit": 10
+        "limit": 5
       },
       "id": "query-notion-native",
       "name": "Query Notion (Native Optimized)",
