@@ -1,0 +1,347 @@
+{
+  "name": "🚀 PostFlow - FINAL WORKING (Based on User Success)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "triggerAtSecond": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-working",
+      "name": "Schedule Trigger (Every 30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -768,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "1c868fa96b0480a5ad81f57648a2392c",
+        "limit": 5,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "conditions": {
+          "conditions": [
+            {
+              "key": "Status",
+              "condition": "equals",
+              "value": "Agendado"
+            },
+            {
+              "key": "Publicar?",
+              "condition": "equals",
+              "value": true
+            },
+            {
+              "key": "Plataforma",
+              "condition": "contains",
+              "value": "Instagram"
+            }
+          ]
+        },
+        "options": {
+          "downloadFiles": true
+        }
+      },
+      "id": "query-notion-working",
+      "name": "Query Notion (Native + Filtered)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow FINAL WORKING - Based on user's successful config\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🚀 FINAL WORKING WORKFLOW - Processing ${items.length} items (property_* format confirmed)`);\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\n// Helper function to detect media type from binary data\nfunction getMediaTypeFromBinary(binaryData, fileName) {\n  // Check mime type first (most reliable)\n  if (binaryData && binaryData.mimeType) {\n    const mimeType = binaryData.mimeType.toLowerCase();\n    if (mimeType.startsWith('video/')) {\n      console.log(`🎬 Detected VIDEO from mime type: ${mimeType}`);\n      return 'VIDEO';\n    }\n    if (mimeType.startsWith('image/')) {\n      console.log(`📸 Detected IMAGE from mime type: ${mimeType}`);\n      return 'IMAGE';\n    }\n  }\n  \n  // Fallback to filename extension\n  if (fileName) {\n    const name = fileName.toLowerCase();\n    const videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];\n    \n    for (const ext of videoExtensions) {\n      if (name.includes(ext)) {\n        console.log(`🎬 Detected VIDEO from filename: ${fileName}`);\n        return 'VIDEO';\n      }\n    }\n  }\n  \n  console.log(`📸 Detected IMAGE (default): ${fileName}`);\n  return 'IMAGE';\n}\n\nfor (const item of items) {\n  const data = item.json;\n  const binaryData = item.binary || {};\n  \n  console.log('\\n=== 🚀 Processing Notion page (WORKING VERSION) ===');\n  console.log('Raw data structure:', JSON.stringify(Object.keys(data), null, 2));\n  \n  // Use correct property_* format confirmed by user\n  const postTitle = data.property_nome || data.name || 'Untitled Post';\n  console.log(`📝 Post: \"${postTitle}\"`);\n  console.log(`🆔 Page ID: ${data.id}`);\n  \n  // Check all conditions using property_* format\n  const status = data.property_status;\n  console.log(`📊 Status: ${status}`);\n  if (status !== 'Agendado') {\n    console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n    continue;\n  }\n  \n  const shouldPublish = data.property_publicar;\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  if (!shouldPublish) {\n    console.log('❌ SKIP: Publicar? is false');\n    continue;\n  }\n  \n  // Handle platform array format (confirmed from user data)\n  const platforms = data.property_plataforma || [];\n  let platformNames = [];\n  let hasInstagram = false;\n  \n  if (Array.isArray(platforms)) {\n    platformNames = platforms;\n    hasInstagram = platforms.includes('Instagram');\n  } else if (typeof platforms === 'string') {\n    platformNames = [platforms];\n    hasInstagram = platforms === 'Instagram';\n  }\n  \n  console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n  \n  if (!hasInstagram) {\n    console.log('❌ SKIP: No Instagram platform');\n    continue;\n  }\n  \n  // Check scheduled date using property_data_do_agendamento\n  const scheduledDateData = data.property_data_do_agendamento;\n  console.log(`📅 Scheduled date data:`, scheduledDateData);\n  \n  if (!scheduledDateData) {\n    console.log('❌ SKIP: No scheduled date set');\n    continue;\n  }\n  \n  // Parse scheduled date (handle user's confirmed format)\n  let scheduledDate;\n  \n  if (typeof scheduledDateData === 'object' && scheduledDateData.start) {\n    const scheduledStart = scheduledDateData.start;\n    if (scheduledStart.includes('T')) {\n      // Has time component (like: 2025-09-01T21:53:00.000-03:00)\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      // Date only - assume 9:00 AM local time\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n  } else if (typeof scheduledDateData === 'string') {\n    scheduledDate = new Date(scheduledDateData);\n  } else {\n    console.log('❌ SKIP: Invalid scheduled date format');\n    continue;\n  }\n  \n  console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n  console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n  \n  // Check if it's time to publish\n  const isTimeToPublish = now >= scheduledDate;\n  console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n  \n  if (!isTimeToPublish) {\n    const timeUntil = scheduledDate - now;\n    const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n    console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n    continue;\n  }\n  \n  // Extract post data using property_* format\n  const postText = data.property_texto_do_post || '';\n  \n  // Handle hashtags array format (confirmed from user data)\n  let hashtags = '';\n  if (data.property_hashtags) {\n    if (Array.isArray(data.property_hashtags)) {\n      hashtags = data.property_hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ');\n    } else if (typeof data.property_hashtags === 'string') {\n      hashtags = data.property_hashtags.startsWith('#') ? data.property_hashtags : `#${data.property_hashtags}`;\n    }\n  }\n  \n  // Check for binary data (files downloaded by Notion)\n  console.log(`📦 Binary data keys:`, Object.keys(binaryData));\n  \n  if (Object.keys(binaryData).length === 0) {\n    console.log(`❌ SKIP: Post \"${postTitle}\" has no binary data`);\n    continue;\n  }\n  \n  // Get the first binary file (user confirmed binary_key: \"Mídia_0\")\n  const binaryKeys = Object.keys(binaryData);\n  const firstBinaryKey = binaryKeys[0]; // This should be \"Mídia_0\" as confirmed\n  const mediaData = binaryData[firstBinaryKey];\n  \n  if (!mediaData) {\n    console.log(`❌ SKIP: No media data found in binary key: ${firstBinaryKey}`);\n    continue;\n  }\n  \n  const fileName = mediaData.fileName || mediaData.name || 'media_file';\n  const fileSize = mediaData.fileSize || 0;\n  const mimeType = mediaData.mimeType || 'unknown';\n  \n  console.log(`📁 Binary file: ${fileName}`);\n  console.log(`📊 File info: ${mimeType}, ${Math.round(fileSize/1024/1024*100)/100} MB`);\n  \n  // Detect media type (user confirmed: media_type: \"VIDEO\")\n  const mediaType = getMediaTypeFromBinary(mediaData, fileName);\n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  console.log(`🚀 POST APPROVED: \"${postTitle}\" ready for Instagram ${mediaType} posting!`);\n  console.log(`📁 File: ${fileName} (${Math.round(fileSize/1024/1024*100)/100}MB)`);\n  \n  readyPosts.push({\n    notion_page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    media_type: mediaType,\n    file_name: fileName,\n    file_size: fileSize,\n    mime_type: mimeType,\n    scheduled_date: scheduledDate.toISOString(),\n    binary_key: firstBinaryKey,\n    // Preserve original data\n    _preserve_notion_id: data.id,\n    _preserve_title: postTitle\n  });\n}\n\nconsole.log(`\\n🚀 === FINAL WORKING RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW (WORKING):');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${Math.round(post.file_size/1024/1024*100)/100}MB) (scheduled: ${new Date(post.scheduled_date).toLocaleString('pt-BR')})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\n// Return data with binary preserved correctly (matching user's working format)\nreturn readyPosts.map((post, index) => {\n  // Find the correct item that matches this post\n  const matchingItem = items.find(item => item.json.id === post.notion_page_id);\n  \n  return {\n    json: post,\n    binary: {\n      data: matchingItem ? matchingItem.binary[post.binary_key] : null\n    }\n  };\n});"
+      },
+      "id": "process-posts-working",
+      "name": "Process Posts (WORKING)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "video-detection",
+              "leftValue": "={{ $json.media_type }}",
+              "rightValue": "VIDEO",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-video-working",
+      "name": "Is Video? (WORKING)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPROQCo1adzvCUXGDdQvDVNMaEHTWzDk2MBykLuXNRZCJ6ZCAGKoQh68fD7AfZAluBMkLUKRkpNaaHHzQZApDjxU2wGRDNJSzyR9u19uEZAvhLZAFbZCQq9QX8vyX1NqFKW3mndj4SUsOImhWZAtIlaBL6g1Iz74kq7cnegHESySMVS4L6d6dNE5VIL8emTqVEnDhEqHrKzkqa1UtaqxegMb25UlgGsyCh5xZCpV1XAadFZBktWW10ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "binaryParameterName": "video_url",
+        "options": {}
+      },
+      "id": "upload-video-working",
+      "name": "Upload Video to Instagram (WORKING)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPROQCo1adzvCUXGDdQvDVNMaEHTWzDk2MBykLuXNRZCJ6ZCAGKoQh68fD7AfZAluBMkLUKRkpNaaHHzQZApDjxU2wGRDNJSzyR9u19uEZAvhLZAFbZCQq9QX8vyX1NqFKW3mndj4SUsOImhWZAtIlaBL6g1Iz74kq7cnegHESySMVS4L6d6dNE5VIL8emTqVEnDhEqHrKzkqa1UtaqxegMb25UlgGsyCh5xZCpV1XAadFZBktWW10ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            }
+          ]
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "binaryParameterName": "image_url",
+        "options": {}
+      },
+      "id": "upload-image-working",
+      "name": "Upload Image to Instagram (WORKING)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPROQCo1adzvCUXGDdQvDVNMaEHTWzDk2MBykLuXNRZCJ6ZCAGKoQh68fD7AfZAluBMkLUKRkpNaaHHzQZApDjxU2wGRDNJSzyR9u19uEZAvhLZAFbZCQq9QX8ryF1NqFKW3mndj4SUsOImhWZAtIlaBL6g1Iz74kq7cnegHESySMVS4L6d6dNE5VIL8emTqVEnDhEqHrKzkqa1UtaqxegMb25UlgGsyCh5xZCpV1XAadFZBktWW10ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish-to-instagram-working",
+      "name": "Publish to Instagram (WORKING)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "page",
+        "operation": "update",
+        "pageId": "={{ $json._preserve_notion_id }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "selectValue": "Publicado"
+            },
+            {
+              "key": "Link da Publicação",
+              "urlValue": "={{ $json.permalink }}"
+            }
+          ]
+        }
+      },
+      "id": "update-notion-status-working",
+      "name": "Update Notion Status (WORKING)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        560,
+        256
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (Every 30s)": {
+      "main": [
+        [
+          {
+            "node": "Query Notion (Native + Filtered)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion (Native + Filtered)": {
+      "main": [
+        [
+          {
+            "node": "Process Posts (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Posts (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Is Video? (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Video? (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Instagram (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upload Image to Instagram (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to Instagram (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Publish to Instagram (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image to Instagram (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Publish to Instagram (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Instagram (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Update Notion Status (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-09-02T01:10:00.000Z",
+  "versionId": "working-v1"
+}

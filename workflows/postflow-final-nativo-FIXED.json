@@ -133,6 +133,8 @@
           ]
         },
         "sendBody": true,
+        "contentType": "multipart-form-data",
+        "sendBody": true,
         "bodyParameters": {
           "parameters": [
             {
@@ -140,15 +142,14 @@
               "value": "REELS"
             },
             {
-              "name": "video_url",
-              "value": "={{ $binary.data.data }}"
-            },
-            {
               "name": "caption",
               "value": "={{ $json.caption }}"
             }
           ]
         },
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "binaryPropertyOutput": "video_url",
         "options": {}
       },
       "id": "upload-video-final-fixed",
