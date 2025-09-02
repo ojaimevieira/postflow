@@ -30,7 +30,38 @@
         "databaseId": "1cc68fa96b0480a5ad81f57648a2392c",
         "options": {
           "downloadFiles": true
-        }
+        },
+        "filterRequest": "json",
+        "filters": {
+          "and": [
+            {
+              "property": "Status",
+              "select": {
+                "equals": "Agendado"
+              }
+            },
+            {
+              "property": "Publicar?",
+              "checkbox": {
+                "equals": true
+              }
+            },
+            {
+              "property": "Data do Agendamento",
+              "date": {
+                "on_or_before": "{{ new Date().toISOString().split('T')[0] }}"
+              }
+            }
+          ]
+        },
+        "sortRequest": "json",
+        "sorts": [
+          {
+            "property": "Data do Agendamento",
+            "direction": "ascending"
+          }
+        ],
+        "limit": 5
       },
       "id": "query-notion-test",
       "name": "Query Notion (Test)",
@@ -43,7 +74,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Simple test to extract file URLs from Notion\nconst items = $input.all();\nconst testData = [];\n\nconsole.log(`🧪 TESTING - Processing ${items.length} items for URL access`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  const postTitle = data.properties?.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n  const mediaFiles = data.properties?.Mídia?.files || [];\n  \n  console.log(`\\n📝 Testing post: \"${postTitle}\"`);\n  console.log(`📸 Media files: ${mediaFiles.length}`);\n  \n  if (mediaFiles.length > 0) {\n    const mediaFile = mediaFiles[0];\n    console.log(`📁 Media file data:`, JSON.stringify(mediaFile, null, 2));\n    \n    let fileUrl = null;\n    let fileName = null;\n    let fileType = null;\n    \n    if (mediaFile.file) {\n      fileUrl = mediaFile.file.url;\n      fileName = mediaFile.name || 'notion_file';\n      fileType = 'notion';\n      console.log(`📤 Found Notion file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    } else if (mediaFile.external) {\n      fileUrl = mediaFile.external.url;\n      fileName = mediaFile.name || 'external_file';\n      fileType = 'external';\n      console.log(`🔗 Found external file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    }\n    \n    if (fileUrl) {\n      testData.push({\n        post_title: postTitle,\n        file_url: fileUrl,\n        file_name: fileName,\n        file_type: fileType,\n        page_id: data.id\n      });\n    }\n  }\n}\n\nconsole.log(`\\n🧪 Total files to test: ${testData.length}`);\nreturn testData.map(test => ({ json: test }));"
+        "jsCode": "// FILTERED test to extract file URLs from Notion\nconst items = $input.all();\nconst testData = [];\n\nconsole.log(`🧪 FILTERED TESTING - Processing ${items.length} items for URL access`);\nconsole.log(`📅 Filter: Status=Agendado, Publicar?=true, Data <= hoje`);\nconsole.log(`📊 Limit: 5 results, sorted by Data do Agendamento`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  const postTitle = data.properties?.Nome?.title?.[0]?.text?.content || 'Untitled Post';\n  const status = data.properties?.Status?.select?.name;\n  const shouldPublish = data.properties?.['Publicar?']?.checkbox;\n  const scheduledDate = data.properties?.['Data do Agendamento']?.date?.start;\n  const mediaFiles = data.properties?.Mídia?.files || [];\n  \n  console.log(`\\n📝 Testing post: \"${postTitle}\"`);\n  console.log(`📊 Status: ${status}`);\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  console.log(`� Agendado para: ${scheduledDate}`);\n  console.log(`�📸 Media files: ${mediaFiles.length}`);\n  \n  if (mediaFiles.length > 0) {\n    const mediaFile = mediaFiles[0];\n    console.log(`📁 Media file data:`, JSON.stringify(mediaFile, null, 2));\n    \n    let fileUrl = null;\n    let fileName = null;\n    let fileType = null;\n    \n    if (mediaFile.file) {\n      fileUrl = mediaFile.file.url;\n      fileName = mediaFile.name || 'notion_file';\n      fileType = 'notion';\n      console.log(`📤 Found Notion file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    } else if (mediaFile.external) {\n      fileUrl = mediaFile.external.url;\n      fileName = mediaFile.name || 'external_file';\n      fileType = 'external';\n      console.log(`🔗 Found external file: ${fileName}`);\n      console.log(`🔗 URL: ${fileUrl}`);\n    }\n    \n    if (fileUrl) {\n      testData.push({\n        post_title: postTitle,\n        status: status,\n        should_publish: shouldPublish,\n        scheduled_date: scheduledDate,\n        file_url: fileUrl,\n        file_name: fileName,\n        file_type: fileType,\n        page_id: data.id\n      });\n    }\n  } else {\n    console.log(`❌ No media files found for \"${postTitle}\"`);\n  }\n}\n\nconsole.log(`\\n🧪 === FILTERED TEST SUMMARY ===`);\nconsole.log(`📊 Total pages returned by filter: ${items.length}`);\nconsole.log(`📁 Total files to test: ${testData.length}`);\nif (testData.length > 0) {\n  console.log('📝 Filtered posts:');\n  testData.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.status}] (${post.scheduled_date})`);\n  });\n} else {\n  console.log('⏳ No posts match the current filter criteria.');\n}\n\nreturn testData.map(test => ({ json: test }));"
       },
       "id": "extract-test-urls",
       "name": "Extract Test URLs",
