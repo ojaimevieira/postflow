@@ -1,0 +1,353 @@
+{
+  "name": "🚀 PostFlow - GITHUB HTTPS VERSION",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "triggerAtSecond": 30
+            }
+          ]
+        }
+      },
+      "id": "090cc930-fe2c-44cd-b70e-3f6995434c2c",
+      "name": "Schedule Trigger (Every 30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "1c868fa96b0480a5ad81f57648a2392c",
+        "limit": 5,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "conditions": {
+          "conditions": [
+            {
+              "key": "Status",
+              "condition": "equals",
+              "value": "Agendado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a8c45c48-83f9-43ae-800b-6306b2f8991f",
+      "name": "Query Notion (Native + Filtered)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        96,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// PostFlow GITHUB HTTPS - Using GitHub raw URLs for HTTPS\nconst items = $input.all();\nconst readyPosts = [];\n\nconsole.log(`🚀 GITHUB HTTPS WORKFLOW - Processing ${items.length} items`);\n\n// GitHub URL for our video file\nconst GITHUB_VIDEO_URL = 'https://raw.githubusercontent.com/ojaimevieira/postflow/main/workflows/Desenhos_do_Jack.mp4';\n\n// Get current date/time for comparison\nconst now = new Date();\nconsole.log(`🕒 Current time: ${now.toISOString()}`);\nconsole.log(`🌍 Current time (Local): ${now.toLocaleString('pt-BR')}`);\n\nfor (const item of items) {\n  const data = item.json;\n  \n  console.log('\\n=== 🚀 Processing Notion page (GITHUB HTTPS) ===');\n  console.log('Raw data structure:', JSON.stringify(Object.keys(data), null, 2));\n  \n  // Use correct property_* format\n  const postTitle = data.property_nome || data.name || 'Untitled Post';\n  console.log(`📝 Post: \"${postTitle}\"`);\n  console.log(`🆔 Page ID: ${data.id}`);\n  \n  // Check all conditions using property_* format\n  const status = data.property_status;\n  console.log(`📊 Status: ${status}`);\n  if (status !== 'Agendado') {\n    console.log(`❌ SKIP: Status is \"${status}\", not \"Agendado\"`);\n    continue;\n  }\n  \n  const shouldPublish = data.property_publicar;\n  console.log(`✅ Publicar?: ${shouldPublish}`);\n  if (!shouldPublish) {\n    console.log('❌ SKIP: Publicar? is false');\n    continue;\n  }\n  \n  // Handle platform array format\n  const platforms = data.property_plataforma || [];\n  let platformNames = [];\n  let hasInstagram = false;\n  \n  if (Array.isArray(platforms)) {\n    platformNames = platforms;\n    hasInstagram = platforms.includes('Instagram');\n  } else if (typeof platforms === 'string') {\n    platformNames = [platforms];\n    hasInstagram = platforms === 'Instagram';\n  }\n  \n  console.log(`🎯 Platforms: [${platformNames.join(', ')}]`);\n  \n  if (!hasInstagram) {\n    console.log('❌ SKIP: No Instagram platform');\n    continue;\n  }\n  \n  // Check scheduled date\n  const scheduledDateData = data.property_data_do_agendamento;\n  console.log(`📅 Scheduled date data:`, scheduledDateData);\n  \n  if (!scheduledDateData) {\n    console.log('❌ SKIP: No scheduled date set');\n    continue;\n  }\n  \n  // Parse scheduled date\n  let scheduledDate;\n  \n  if (typeof scheduledDateData === 'object' && scheduledDateData.start) {\n    const scheduledStart = scheduledDateData.start;\n    if (scheduledStart.includes('T')) {\n      scheduledDate = new Date(scheduledStart);\n    } else {\n      scheduledDate = new Date(scheduledStart + 'T09:00:00');\n    }\n  } else if (typeof scheduledDateData === 'string') {\n    scheduledDate = new Date(scheduledDateData);\n  } else {\n    console.log('❌ SKIP: Invalid scheduled date format');\n    continue;\n  }\n  \n  console.log(`📅 Scheduled for: ${scheduledDate.toISOString()}`);\n  console.log(`📅 Scheduled for (Local): ${scheduledDate.toLocaleString('pt-BR')}`);\n  \n  // Check if it's time to publish\n  const isTimeToPublish = now >= scheduledDate;\n  console.log(`⏰ Time check: ${isTimeToPublish ? '✅ READY' : '❌ NOT YET'}`);\n  \n  if (!isTimeToPublish) {\n    const timeUntil = scheduledDate - now;\n    const hoursUntil = Math.round(timeUntil / (1000 * 60 * 60) * 10) / 10;\n    console.log(`⏳ SKIP: Still ${hoursUntil} hours until scheduled time`);\n    continue;\n  }\n  \n  // Extract post data using property_* format\n  const postText = data.property_texto_do_post || '';\n  \n  // Handle hashtags array format\n  let hashtags = '';\n  if (data.property_hashtags) {\n    if (Array.isArray(data.property_hashtags)) {\n      hashtags = data.property_hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ');\n    } else if (typeof data.property_hashtags === 'string') {\n      hashtags = data.property_hashtags.startsWith('#') ? data.property_hashtags : `#${data.property_hashtags}`;\n    }\n  }\n  \n  // Use GitHub HTTPS URL for video\n  const mediaUrl = GITHUB_VIDEO_URL;\n  console.log(`🔗 GitHub Media URL: ${mediaUrl}`);\n  \n  // Always treat as video since we're using Desenhos_do_Jack.mp4\n  const mediaType = 'REELS';\n  \n  const caption = postText + (hashtags ? '\\n\\n' + hashtags : '');\n  \n  console.log(`🚀 POST APPROVED: \"${postTitle}\" ready for Instagram ${mediaType} posting!`);\n  console.log(`🔗 GitHub HTTPS URL: ${mediaUrl}`);\n  \n  readyPosts.push({\n    notion_page_id: data.id,\n    post_title: postTitle,\n    caption: caption,\n    media_type: mediaType,\n    media_url: mediaUrl,\n    scheduled_date: scheduledDate.toISOString(),\n    // Preserve original data\n    _preserve_notion_id: data.id,\n    _preserve_title: postTitle\n  });\n}\n\nconsole.log(`\\n🚀 === GITHUB HTTPS RESULT ===`);\nconsole.log(`📊 Total posts ready for Instagram: ${readyPosts.length}`);\nif (readyPosts.length > 0) {\n  console.log('🚀 Posts that will be published NOW:');\n  readyPosts.forEach((post, i) => {\n    console.log(`   ${i+1}. \"${post.post_title}\" [${post.media_type}] (${post.media_url})`);\n  });\n} else {\n  console.log('⏳ No posts ready to publish at this time. Next check in 30 seconds.');\n}\n\nreturn readyPosts;"
+      },
+      "id": "f3319254-656b-4e17-af86-c5a8501c925d",
+      "name": "Process Posts (GITHUB HTTPS)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "video-detection",
+              "leftValue": "={{ $json.media_type }}",
+              "rightValue": "REELS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eade2d9b-541b-4345-be0f-b1310593e65f",
+      "name": "Is Video? (WORKING)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        544,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url", 
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9bc467af-9b24-4169-ab44-dc939ff7a492",
+      "name": "Upload Video to Instagram (GITHUB HTTPS)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5aafb820-5d93-42be-ac54-0333f402a354",
+      "name": "Upload Image to Instagram (WORKING)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "wait-for-video-processing",
+      "name": "Wait for Video Processing (30s)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841468923069540/media_publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "84d11ce5-87e7-4c7b-9ba8-e7be5ccb4f3e",
+      "name": "Publish to Instagram (GITHUB HTTPS)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        992,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Process Posts (GITHUB HTTPS)').item.json._preserve_notion_id }}",
+          "mode": "expression"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "type": "status",
+              "statusValue": "Publicado"
+            }
+          ]
+        }
+      },
+      "id": "c5d2c9e5-c234-4b3b-ac83-46b7b6b34f89",
+      "name": "Update Notion Status (GITHUB HTTPS)",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        176
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (Every 30s)": {
+      "main": [
+        [
+          {
+            "node": "Query Notion (Native + Filtered)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion (Native + Filtered)": {
+      "main": [
+        [
+          {
+            "node": "Process Posts (GITHUB HTTPS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Posts (GITHUB HTTPS)": {
+      "main": [
+        [
+          {
+            "node": "Is Video? (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Video? (WORKING)": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to Instagram (GITHUB HTTPS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upload Image to Instagram (WORKING)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to Instagram (GITHUB HTTPS)": {
+      "main": [
+        [
+          {
+            "node": "Wait for Video Processing (30s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Video Processing (30s)": {
+      "main": [
+        [
+          {
+            "node": "Publish to Instagram (GITHUB HTTPS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Instagram (GITHUB HTTPS)": {
+      "main": [
+        [
+          {
+            "node": "Update Notion Status (GITHUB HTTPS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bb8a4de0-c7a1-40d4-85d0-8d8e4e0a8b8c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7c5a9b9bf9b79a04e5b7d4c50fbdddacec8c60e6e55eb1123d16a8a2d3b7e0ab"
+  },
+  "id": "bb8a4de0-c7a1-40d4-85d0-8d8e4e0a8b8c",
+  "tags": []
+}
