@@ -105,7 +105,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+              "value": "Bearer YOUR_INSTAGRAM_ACCESS_TOKEN_HERE"
             }
           ]
         },
@@ -146,7 +146,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+              "value": "Bearer YOUR_INSTAGRAM_ACCESS_TOKEN_HERE"
             }
           ]
         },
@@ -197,7 +197,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer EAAgHDLKanTYBPZAw4VZCP8vp2DjVuIRCjPz04uqUczYg2fEfBO3FO1rZCW0LY80Bco8ZAIZAbZA8LqrJQ8ZCN74fUOBOMfdgZBtO37JgfCpyaJAFFwGYVHDIqB0riJTOo5ohAVi7xGrwMnpgGTSMCGW3EJyZAI9dVcDZAPVdXzjOsawmHUHazG2rUExshml73BfkE7jdhZAX1ZAPrpNFJE3dCXdXGOdaEOyB5Ew4ih2GXqpzQRvH7QEieTTYbZBzFtq0ZD"
+              "value": "Bearer YOUR_INSTAGRAM_ACCESS_TOKEN_HERE"
             }
           ]
         },
